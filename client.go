@@ -14,8 +14,8 @@ var(
   HEALTHCHECK_PERIOD time.Duration = time.Duration(5 * time.Second)
 )
 
-// The MemcacheHA type represents the cluster client.
-type MemcacheHA struct {
+// The Client type represents the cluster client.
+type Client struct {
   Nodes *NodeList
   Sources []NodeSource
   Log log.Logger
@@ -24,9 +24,9 @@ type MemcacheHA struct {
   running bool
 }
 
-// Return a new MemcacheHA with the specified logger and NodeSources
-func NewMemcacheHA(logger log.Logger, sources ...NodeSource) *MemcacheHA {
-  i := &MemcacheHA{
+// Return a new Client with the specified logger and NodeSources
+func NewClient(logger log.Logger, sources ...NodeSource) *Client {
+  i := &Client{
     Nodes: NewNodeList(),
     Sources: sources,
     Log: logger,
@@ -37,7 +37,7 @@ func NewMemcacheHA(logger log.Logger, sources ...NodeSource) *MemcacheHA {
 }
 
 // Add writes the given item, if no value already exists for its key. ErrNotStored is returned if that condition is not met.
-func (me *MemcacheHA) Add(item *memcache.Item) error {
+func (me *Client) Add(item *memcache.Item) error {
   // Get all nodes that are marked healthy
   nodes := me.Nodes.GetHealthyNodes()
   nodeCount := len(nodes)
@@ -99,7 +99,7 @@ func (me *MemcacheHA) Add(item *memcache.Item) error {
 }
 
 // Set writes the given item, unconditionally.
-func (me *MemcacheHA) Set(item *memcache.Item) error {
+func (me *Client) Set(item *memcache.Item) error {
   // Get all nodes that are marked healthy
   nodes := me.Nodes.GetHealthyNodes()
   nodeCount := len(nodes)
@@ -137,7 +137,7 @@ func (me *MemcacheHA) Set(item *memcache.Item) error {
 }
 
 // Get gets the item for the given key. ErrCacheMiss is returned for a memcache cache miss. The key must be at most 250 bytes in length.
-func (me *MemcacheHA) Get(key string) (*memcache.Item, error) {
+func (me *Client) Get(key string) (*memcache.Item, error) {
   // Get all nodes that are marked healthy
   nodes := me.Nodes.GetHealthyNodes()
   nodeCount := len(nodes)
@@ -202,7 +202,7 @@ func (me *MemcacheHA) Get(key string) (*memcache.Item, error) {
 }
 
 // Delete deletes the item with the provided key. The error ErrCacheMiss is returned if the item didn't already exist in the cache.
-func (me *MemcacheHA) Delete(key string) error {
+func (me *Client) Delete(key string) error {
   // Get all nodes that are marked healthy
   nodes := me.Nodes.GetHealthyNodes()
   nodeCount := len(nodes)
@@ -241,14 +241,56 @@ func (me *MemcacheHA) Delete(key string) error {
   return <- finishChan
 }
 
-// Start the MemcacheHA client. This should be called before any operations are called.
-func (me *MemcacheHA) Start() error {
+// Touch updates the expiry for the given key. The seconds parameter is either a Unix timestamp or, 
+// if seconds is less than 1 month, the number of seconds into the future at which time the item will expire.
+// ErrCacheMiss is returned if the key is not in the cache. The key must be at most 250 bytes in length.
+func (me *Client) Touch(key string, seconds int32) error {
+  // Get all nodes that are marked healthy
+  nodes := me.Nodes.GetHealthyNodes()
+  nodeCount := len(nodes)
+
+  // Bug out early if no nodes
+  if len(nodes) == 0 { return ErrNoHealthyNodes }
+
+  finishChan := make(chan(error))
+  statusChan := make(chan(*NodeResponse), nodeCount)
+
+  // Concurrently delete from all nodes
+  for _, node := range nodes { node.Touch(key, seconds, statusChan) }
+
+  // If any node returns ErrCacheMiss return this instead.
+  var errToReturn error = nil
+
+  // Handle responses
+  go func(){
+    // Panic handler
+    defer func(){ r := recover(); if r!=nil { finishChan <- ErrUnknown } }()
+
+    for ; nodeCount > 0; nodeCount-- {
+      response := <- statusChan
+      if response.Error == memcache.ErrCacheMiss { errToReturn = memcache.ErrCacheMiss }
+    }
+
+    // If this happened, writes to all nodes failed
+    if me.Nodes.GetHealthyNodeCount() == 0 {
+      finishChan <- ErrNoHealthyNodes
+      return
+    }
+
+    finishChan <- errToReturn
+  }()
+
+  return <- finishChan
+}
+
+// Start the Client client. This should be called before any operations are called.
+func (me *Client) Start() error {
   if me.running != false { return ErrAlreadyRunning } 
   go me.runloop()
   return nil
 }
 
-func (me *MemcacheHA) runloop() {
+func (me *Client) runloop() {
   me.Log.Info("Running")
   timerChannel := time.After(time.Duration(time.Second))
   lastGetNodes := time.Time{}
@@ -283,7 +325,7 @@ func (me *MemcacheHA) runloop() {
 }
 
 // Update the list of nodes in the client from the configured sources.
-func (me *MemcacheHA) GetNodes() {
+func (me *Client) GetNodes() {
   for _, source := range me.Sources {
     nodes, err := source.GetNodes()
     if err != nil { me.Log.Error("GetNodes: Source Error: %s", err); return }
@@ -298,14 +340,14 @@ func (me *MemcacheHA) GetNodes() {
 }
 
 // Perform a healthcheck on all nodes.
-func (me *MemcacheHA) HealthCheck() {
+func (me *Client) HealthCheck() {
   for _, node := range me.Nodes.Nodes {
     node.HealthCheck()
   }
 }
 
-// Stop the MemcacheHA client.
-func (me *MemcacheHA) Stop() error {
+// Stop the Client client.
+func (me *Client) Stop() error {
   if me.running != true { return ErrAlreadyRunning }
   me.shutdownChan <- 1
   <- me.shutdownChan

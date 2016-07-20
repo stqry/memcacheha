@@ -68,6 +68,14 @@ func (me *Node) Delete(key string, finishChan chan(*NodeResponse)) {
   }()
 }
 
+func (me *Node) Touch(key string, seconds int32, finishChan chan(*NodeResponse)) {
+  go func(){
+    me.Log.Debug("TOUCH %s", key)
+    err := me.client.Touch(key, seconds)
+    if finishChan!=nil { finishChan <- me.getNodeResponse(nil, err) }
+  }()
+}
+
 // Perform a healthcheck on the memcache server represented by this node, update IsHealthy, and return it
 func (me *Node) HealthCheck() bool {
   // Read a Random key, expect ErrCacheMiss
