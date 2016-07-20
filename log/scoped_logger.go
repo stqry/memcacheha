@@ -1,4 +1,4 @@
-package memcacheha 
+package log
 
 type ScopedLogger struct {
   Logger Logger

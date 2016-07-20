@@ -1,6 +1,8 @@
 package memcacheha
 
 import(
+  "github.com/apitalent/memcacheha/log"
+
   "github.com/bradfitz/gomemcache/memcache"
   
   "crypto/rand"
@@ -11,7 +13,7 @@ import(
 // Node represents a single Memcache server.
 type Node struct {
   Endpoint string
-  Log Logger
+  Log log.Logger
 
   IsHealthy bool
   LastHealthCheck time.Time
@@ -20,10 +22,10 @@ type Node struct {
 }
 
 // Return a new Node with the given Logger and endpoint (host:port)
-func NewNode(logger Logger, endpoint string) *Node {
+func NewNode(logger log.Logger, endpoint string) *Node {
   return &Node{
     Endpoint: endpoint,
-    Log: NewScopedLogger("Node "+endpoint, logger),
+    Log: log.NewScopedLogger("Node "+endpoint, logger),
     IsHealthy: false,
     LastHealthCheck: time.Now().Add(-1 * HEALTHCHECK_PERIOD),
     client: memcache.New(endpoint),

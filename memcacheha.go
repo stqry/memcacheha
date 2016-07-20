@@ -2,6 +2,7 @@
 package memcacheha
 
 import(
+  "github.com/apitalent/memcacheha/log"
   "github.com/bradfitz/gomemcache/memcache"
   "time"
 )
@@ -17,14 +18,14 @@ var(
 type MemcacheHA struct {
   Nodes *NodeList
   Sources []NodeSource
-  Log Logger
+  Log log.Logger
 
   shutdownChan chan(int)
   running bool
 }
 
 // Return a new MemcacheHA with the specified logger and NodeSources
-func NewMemcacheHA(logger Logger, sources ...NodeSource) *MemcacheHA {
+func NewMemcacheHA(logger log.Logger, sources ...NodeSource) *MemcacheHA {
   i := &MemcacheHA{
     Nodes: NewNodeList(),
     Sources: sources,

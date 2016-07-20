@@ -1,4 +1,4 @@
-package memcacheha
+package log
 
 // Individual log levels
 const (

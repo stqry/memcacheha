@@ -1,6 +1,8 @@
 package memcacheha
 
 import(
+  "github.com/apitalent/memcacheha/log"
+
   "github.com/aws/aws-sdk-go/aws"
   "github.com/aws/aws-sdk-go/aws/session"
   "github.com/aws/aws-sdk-go/service/elasticache"
@@ -17,15 +19,15 @@ const(
 type ElastiCacheNodeSource struct {
   AWSRegion string
   CacheClusterId string
-  Log Logger
+  Log log.Logger
 }
 
 // Return a new ElastiCacheNodeSource with the given logger, AWS region, and cache cluster ID
-func NewElastiCacheNodeSource(logger Logger, awsRegion string, cacheClusterId string) *ElastiCacheNodeSource {
+func NewElastiCacheNodeSource(logger log.Logger, awsRegion string, cacheClusterId string) *ElastiCacheNodeSource {
   inst := &ElastiCacheNodeSource{
     AWSRegion: awsRegion,
     CacheClusterId: cacheClusterId,
-    Log: NewScopedLogger("ElastiCache Source",logger),
+    Log: log.NewScopedLogger("ElastiCache Source",logger),
   }
   return inst
 }

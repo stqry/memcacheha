@@ -1,4 +1,4 @@
-package memcacheha
+package log
 
 import(
   "fmt"
