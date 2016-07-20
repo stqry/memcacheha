@@ -25,7 +25,7 @@ type Client struct {
 }
 
 // Return a new Client with the specified logger and NodeSources
-func NewClient(logger log.Logger, sources ...NodeSource) *Client {
+func New(logger log.Logger, sources ...NodeSource) *Client {
   i := &Client{
     Nodes: NewNodeList(),
     Sources: sources,
