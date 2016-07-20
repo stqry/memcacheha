@@ -1,18 +1,19 @@
+// memcacheha wraps github.com/bradfitz/gomemcache/memcache to provide HA (highly available) functionality with lazy client-side synchronization.
 package memcacheha
 
 import(
   "github.com/bradfitz/gomemcache/memcache"
-
   "time"
 )
 
-const VERSION = "0.0.1"
+const VERSION = "0.1.0"
 
 var(
   GET_NODES_PERIOD time.Duration = time.Duration(10 * time.Second)
   HEALTHCHECK_PERIOD time.Duration = time.Duration(5 * time.Second)
 )
 
+// The MemcacheHA type represents the cluster client.
 type MemcacheHA struct {
   Nodes *NodeList
   Sources []NodeSource
@@ -22,6 +23,7 @@ type MemcacheHA struct {
   running bool
 }
 
+// Return a new MemcacheHA with the specified logger and NodeSources
 func NewMemcacheHA(logger Logger, sources ...NodeSource) *MemcacheHA {
   i := &MemcacheHA{
     Nodes: NewNodeList(),
@@ -238,6 +240,7 @@ func (me *MemcacheHA) Delete(key string) error {
   return <- finishChan
 }
 
+// Start the MemcacheHA client. This should be called before any operations are called.
 func (me *MemcacheHA) Start() error {
   if me.running != false { return ErrAlreadyRunning } 
   go me.runloop()
@@ -278,6 +281,7 @@ func (me *MemcacheHA) runloop() {
 
 }
 
+// Update the list of nodes in the client from the configured sources.
 func (me *MemcacheHA) GetNodes() {
   for _, source := range me.Sources {
     nodes, err := source.GetNodes()
@@ -292,12 +296,14 @@ func (me *MemcacheHA) GetNodes() {
   }
 }
 
+// Perform a healthcheck on all nodes.
 func (me *MemcacheHA) HealthCheck() {
   for _, node := range me.Nodes.Nodes {
     node.HealthCheck()
   }
 }
 
+// Stop the MemcacheHA client.
 func (me *MemcacheHA) Stop() error {
   if me.running != true { return ErrAlreadyRunning }
   me.shutdownChan <- 1

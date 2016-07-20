@@ -1,5 +1,7 @@
 # memcacheha
 
+[![](https://godoc.org/github.com/apitalent/memcacheha?status.svg)](https://godoc.org/github.com/apitalent/memcacheha)
+
 memcacheha wraps `github.com/bradfitz/gomemcache/memcache` to provide HA (highly available) functionality with lazy client-side synchronization.
 
 ## Operation

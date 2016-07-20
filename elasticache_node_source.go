@@ -13,12 +13,14 @@ const(
   ELASTICACHE_CLUSTER_TYPE_MEMCACHE = "memcache"
 )
 
+// ElastiCacheNodeSource represents a source of nodes from an AWS ElastiCache cluster
 type ElastiCacheNodeSource struct {
   AWSRegion string
   CacheClusterId string
   Log Logger
 }
 
+// Return a new ElastiCacheNodeSource with the given logger, AWS region, and cache cluster ID
 func NewElastiCacheNodeSource(logger Logger, awsRegion string, cacheClusterId string) *ElastiCacheNodeSource {
   inst := &ElastiCacheNodeSource{
     AWSRegion: awsRegion,
@@ -28,6 +30,7 @@ func NewElastiCacheNodeSource(logger Logger, awsRegion string, cacheClusterId st
   return inst
 }
 
+// Implement NodeSource, query the AWS API and get the nodes associated with the configured CacheClusterId
 func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
   // AWS Session / Client
   sess := session.New(&aws.Config{Region: aws.String(me.AWSRegion)})

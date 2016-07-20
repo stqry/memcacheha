@@ -8,6 +8,7 @@ import(
   "time"
 )
 
+// Node represents a single Memcache server.
 type Node struct {
   Endpoint string
   Log Logger
@@ -18,6 +19,7 @@ type Node struct {
   client *memcache.Client
 }
 
+// Return a new Node with the given Logger and endpoint (host:port)
 func NewNode(logger Logger, endpoint string) *Node {
   return &Node{
     Endpoint: endpoint,
@@ -28,6 +30,7 @@ func NewNode(logger Logger, endpoint string) *Node {
   }
 } 
 
+// Add an item to the memcache server represented by this node and send the response to the given channel
 func (me *Node) Add(item *memcache.Item, finishChan chan(*NodeResponse)) {
   go func(){
     me.Log.Debug("ADD %s", item.Key)
@@ -36,6 +39,7 @@ func (me *Node) Add(item *memcache.Item, finishChan chan(*NodeResponse)) {
   }()
 }
 
+// Set an item in the memcache server represented by this node and send the response to the given channel
 func (me *Node) Set(item *memcache.Item, finishChan chan(*NodeResponse)) {
   go func(){
     me.Log.Debug("SET %s", item.Key)
@@ -44,6 +48,7 @@ func (me *Node) Set(item *memcache.Item, finishChan chan(*NodeResponse)) {
   }()
 }
 
+// Get an item with the given key from the memcache server represented by this node and send the response to the given channel
 func (me *Node) Get(key string, finishChan chan(*NodeResponse)) {
   go func(){
     me.Log.Debug("GET %s", key)
@@ -52,6 +57,7 @@ func (me *Node) Get(key string, finishChan chan(*NodeResponse)) {
   }()
 }
 
+// Delete an item with the given key from the memcache server represented by this node and send the response to the given channel
 func (me *Node) Delete(key string, finishChan chan(*NodeResponse)) {
   go func(){
     me.Log.Debug("DELETE %s", key)
@@ -60,12 +66,14 @@ func (me *Node) Delete(key string, finishChan chan(*NodeResponse)) {
   }()
 }
 
-func (me *Node) HealthCheck() {
+// Perform a healthcheck on the memcache server represented by this node, update IsHealthy, and return it
+func (me *Node) HealthCheck() bool {
   // Read a Random key, expect ErrCacheMiss
   x := make([]byte,32)
   rand.Read(x)
   _, err := me.client.Get(fmt.Sprintf("%02x", x))
   me.getNodeResponse(nil, err)
+  return me.IsHealthy
 }
 
 func (me *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse {
