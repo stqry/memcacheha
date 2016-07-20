@@ -32,6 +32,7 @@ func New(logger log.Logger, sources ...NodeSource) *Client {
     Nodes: NewNodeList(),
     Sources: sources,
     Log: logger,
+    Timeout: 100 * time.Millisecond,
     shutdownChan: make(chan(int)),
     running: false,
   }
