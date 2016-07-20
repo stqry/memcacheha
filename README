@@ -7,7 +7,7 @@ memcacheha wraps `github.com/bradfitz/gomemcache/memcache` to provide HA (highly
 ### Failover condition assumptions
 
 * Only one node will be lost at once
-* A node (re)joining the cluster may be flushed (empty) or have missing keys
+* A node (re)joining the cluster will be empty.
 
 ### Unconditional Writing
 

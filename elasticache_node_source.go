@@ -1,6 +1,8 @@
 package memcacheha
 
 import(
+  "github.com/aws/aws-sdk-go/aws"
+  "github.com/aws/aws-sdk-go/aws/session"
   "github.com/aws/aws-sdk-go/service/elasticache"
 
   "errors"
@@ -12,20 +14,25 @@ const(
 )
 
 type ElastiCacheNodeSource struct {
+  AWSRegion string
   CacheClusterId string
-
-  client *elasticache.ElastiCache
+  Log Logger
 }
 
-func NewElastiCacheNodeSource(awsRegion string, cacheClusterId string) *ElastiCacheNodeSource {
+func NewElastiCacheNodeSource(logger Logger, awsRegion string, cacheClusterId string) *ElastiCacheNodeSource {
   inst := &ElastiCacheNodeSource{
+    AWSRegion: awsRegion,
     CacheClusterId: cacheClusterId,
-    client: elasticache.New(nil),
+    Log: NewScopedLogger("ElastiCache Source",logger),
   }
   return inst
 }
 
 func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
+  // AWS Session / Client
+  sess := session.New(&aws.Config{Region: aws.String(me.AWSRegion)})
+  client := elasticache.New(sess)
+
   // Create input struct
   x := true
   input := &elasticache.DescribeCacheClustersInput{
@@ -34,8 +41,8 @@ func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
   }
 
   // Get the AWS cache cluster
-  output, err := me.client.DescribeCacheClusters(input)
-  if err !=nil { return nil, ErrElastiCacheNotAvailable }
+  output, err := client.DescribeCacheClusters(input)
+  if err !=nil { return nil, err }
 
   // Set up output
   var out []string
@@ -55,7 +62,6 @@ func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
 }
 
 var(
-  ErrElastiCacheNotAvailable = errors.New("memcacheha: elasticache: not available")
-  ErrElastiCacheMultipleClusters = errors.New("memcacheha: elasticache: DescribeCacheClusters returned more than one cluster")
-  ErrElastiCacheNotMemcache = errors.New("memcacheha: elasticache: Not a memcache cluster")
+  ErrElastiCacheMultipleClusters = errors.New("DescribeCacheClusters returned more than one cluster")
+  ErrElastiCacheNotMemcache = errors.New("Not a memcache cluster")
 )

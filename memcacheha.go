@@ -9,22 +9,24 @@ import(
 const VERSION = "0.0.1"
 
 var(
-  GET_NODES_PERIOD time.Duration = time.Duration(60 * time.Second)
-  HEALTHCHECK_PERIOD time.Duration = time.Duration(10 * time.Second)
+  GET_NODES_PERIOD time.Duration = time.Duration(10 * time.Second)
+  HEALTHCHECK_PERIOD time.Duration = time.Duration(5 * time.Second)
 )
 
 type MemcacheHA struct {
   Nodes *NodeList
   Sources []NodeSource
+  Log Logger
 
   shutdownChan chan(int)
   running bool
 }
 
-func NewMemcacheHA(sources ...NodeSource) *MemcacheHA {
+func NewMemcacheHA(logger Logger, sources ...NodeSource) *MemcacheHA {
   i := &MemcacheHA{
     Nodes: NewNodeList(),
     Sources: sources,
+    Log: logger,
     shutdownChan: make(chan(int)),
     running: false,
   }
@@ -43,22 +45,53 @@ func (me *MemcacheHA) Add(item *memcache.Item) error {
   finishChan := make(chan(error))
   statusChan := make(chan(*NodeResponse), nodeCount)
 
-  // Concurrently write to all nodes
+  // Concurrently write to all healthy nodes
   for _, node := range nodes { node.Add(item, statusChan) }
+
+  // True if any node returns ErrNotStored
+  doSync := false
+  // These are the nodes that don't contain the value
+  var nodesToSync []*Node 
 
   // Handle responses
   go func(){
-    defer func(){ r := recover(); if r != nil { finishChan <- ErrUnknown } }()
+    defer func(){ r := recover(); if r!=nil { finishChan <- ErrUnknown } }()
 
+    // Get response from all nodes
     for ; nodeCount > 0; nodeCount-- {
       response := <- statusChan
-      if response.Error != nil { finishChan <- ErrUnknown; return }
+      if response.Error == memcache.ErrNotStored { doSync = true }
+      if response.Error == nil { nodesToSync = append(nodesToSync, response.Node) }
+      // We ignore other errors
     }
 
+    // Where there any ErrNotStored?
+    if doSync {
+      if len(nodesToSync)>0 {
+        me.Log.Info("Add: Synchronising %d nodes", len(nodesToSync))
+        // Re-read the original
+        item, err := me.Get(item.Key)
+        if err!=nil {
+          // Write to all sync nodes unconditionally
+          for _, node := range nodesToSync { node.Set(item, nil) }
+        } 
+      }
+
+      finishChan <- memcache.ErrNotStored
+      return
+    } 
+
+    // If this happened, writes to all nodes failed
+    if me.Nodes.GetHealthyNodeCount() == 0 {
+      finishChan <- ErrNoHealthyNodes
+      return
+    }
+
+    // All good
     finishChan <- nil
   }()
 
-  // Wait for final response and return
+  // Return result
   return <- finishChan
 }
 
@@ -79,11 +112,18 @@ func (me *MemcacheHA) Set(item *memcache.Item) error {
 
   // Handle responses
   go func(){
+    // Panic handler
     defer func(){ r := recover(); if r!=nil { finishChan <- ErrUnknown } }()
 
     for ; nodeCount > 0; nodeCount-- {
-      response := <- statusChan
-      if response.Error != nil { finishChan <- ErrUnknown; return }
+      // We actually don't care about errors, Node handles them.
+      <- statusChan
+    }
+
+    // If this happened, writes to all nodes failed
+    if me.Nodes.GetHealthyNodeCount() == 0 {
+      finishChan <- ErrNoHealthyNodes
+      return
     }
 
     finishChan <- nil
@@ -102,7 +142,7 @@ func (me *MemcacheHA) Get(key string) (*memcache.Item, error) {
   // Bug out early if no nodes
   if nodeCount == 0 { return nil, ErrNoHealthyNodes }
 
-  // Reduce to less than 3 nodes - thanks to golang, these will be random
+  // Reduce to less than 3 nodes - thanks to golang, these 2 nodes will be random
   for k, _ := range nodes {
     if len(nodes) < 3 { break }
     delete(nodes, k)
@@ -111,36 +151,50 @@ func (me *MemcacheHA) Get(key string) (*memcache.Item, error) {
   finishChan := make(chan(*NodeResponse))
   statusChan := make(chan(*NodeResponse), nodeCount)
 
-  // Concurrently read to all nodes
+  // Concurrently read from nodes
   for _, node := range nodes { node.Get(key, statusChan) }
 
+  // These are the nodes to sync to if we get some ErrCacheMiss from requests
   var nodesToSync []*Node 
 
   // Handle responses
   go func(){
+    // Panic handler
     defer func(){ r := recover(); if r!=nil { finishChan <- NewNodeResponse(nil, nil, ErrUnknown) } }()
 
+    // Placeholder for result
     var item *memcache.Item
 
+    // Get response from all nodes
     for ; nodeCount > 0; nodeCount-- {
       response := <- statusChan
       if response.Error == memcache.ErrCacheMiss { nodesToSync = append(nodesToSync, response.Node) }
       if response.Error == nil && response.Item != nil { item = response.Item }
     }
 
-    // Resync by writing to missing nodes
+    // Did we find an item from any node?
     if item!=nil {
-      for _, node := range nodesToSync {
-        node.Set(item, nil)
+      if len(nodesToSync)>0 {
+        me.Log.Info("Get: Synchronising %d nodes", len(nodesToSync))
+        // Resync by writing to missing nodes 
+        for _, node := range nodesToSync { node.Set(item, nil) }
       }
+
+      // Return Item
+      finishChan <- NewNodeResponse(nil, item, nil)
+      return
     }
 
+    // Something nasty happened
     finishChan <- nil
   }()
 
+  // Wait for aggregate response
   res := <- finishChan
+  // return result
   if res!=nil { return res.Item, res.Error }
 
+  // End case for something nasty
   return nil, ErrUnknown
 }
 
@@ -159,16 +213,26 @@ func (me *MemcacheHA) Delete(key string) error {
   // Concurrently delete from all nodes
   for _, node := range nodes { node.Delete(key, statusChan) }
 
+  // If any node returns ErrCacheMiss return this instead.
+  var errToReturn error = nil
+
   // Handle responses
   go func(){
+    // Panic handler
     defer func(){ r := recover(); if r!=nil { finishChan <- ErrUnknown } }()
 
     for ; nodeCount > 0; nodeCount-- {
       response := <- statusChan
-      if response.Error != nil { finishChan <- ErrUnknown; return }
+      if response.Error == memcache.ErrCacheMiss { errToReturn = memcache.ErrCacheMiss }
     }
 
-    finishChan <- nil
+    // If this happened, writes to all nodes failed
+    if me.Nodes.GetHealthyNodeCount() == 0 {
+      finishChan <- ErrNoHealthyNodes
+      return
+    }
+
+    finishChan <- errToReturn
   }()
 
   return <- finishChan
@@ -181,9 +245,11 @@ func (me *MemcacheHA) Start() error {
 }
 
 func (me *MemcacheHA) runloop() {
+  me.Log.Info("Running")
   timerChannel := time.After(time.Duration(time.Second))
-
-  lastGetNodes := time.Now().Add(-1*GET_NODES_PERIOD)
+  lastGetNodes := time.Time{}
+  lastHealthCheck := time.Time{}
+  me.running = true
 
   for {
     select {
@@ -195,24 +261,40 @@ func (me *MemcacheHA) runloop() {
         lastGetNodes = time.Now()
       }
 
-      timerChannel = time.After(time.Duration(time.Second))
+      if lastHealthCheck.Add(HEALTHCHECK_PERIOD).Before(now) {
+        me.HealthCheck()
+        lastHealthCheck = time.Now()
+      }
+
+      timerChannel = time.After(time.Duration(time.Second/10))
 
     case <- me.shutdownChan: 
       me.running = false
+      me.Log.Info("Stopped")
       me.shutdownChan <- 2
       return
     }
   }
+
 }
 
 func (me *MemcacheHA) GetNodes() {
   for _, source := range me.Sources {
-
-    nodes, _ := source.GetNodes()
+    nodes, err := source.GetNodes()
+    if err != nil { me.Log.Error("GetNodes: Source Error: %s", err); return }
 
     for _, nodeAddr := range nodes {
-      if !me.Nodes.Exists(nodeAddr) { node := NewNode(nodeAddr); me.Nodes.Add(node); node.HealthCheck() }
+      if !me.Nodes.Exists(nodeAddr) { 
+        me.Log.Info("GetNodes: New Node %s", nodeAddr)
+        node := NewNode(me.Log, nodeAddr); me.Nodes.Add(node); node.HealthCheck()
+      }
     }
+  }
+}
+
+func (me *MemcacheHA) HealthCheck() {
+  for _, node := range me.Nodes.Nodes {
+    node.HealthCheck()
   }
 }
 

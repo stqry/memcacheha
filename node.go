@@ -10,6 +10,7 @@ import(
 
 type Node struct {
   Endpoint string
+  Log Logger
 
   IsHealthy bool
   LastHealthCheck time.Time
@@ -17,9 +18,10 @@ type Node struct {
   client *memcache.Client
 }
 
-func NewNode(endpoint string) *Node {
+func NewNode(logger Logger, endpoint string) *Node {
   return &Node{
     Endpoint: endpoint,
+    Log: NewScopedLogger("Node "+endpoint, logger),
     IsHealthy: false,
     LastHealthCheck: time.Now().Add(-1 * HEALTHCHECK_PERIOD),
     client: memcache.New(endpoint),
@@ -28,6 +30,7 @@ func NewNode(endpoint string) *Node {
 
 func (me *Node) Add(item *memcache.Item, finishChan chan(*NodeResponse)) {
   go func(){
+    me.Log.Debug("ADD %s", item.Key)
     err := me.client.Add(item)
     if finishChan!=nil { finishChan <- me.getNodeResponse(nil, err) }
   }()
@@ -35,6 +38,7 @@ func (me *Node) Add(item *memcache.Item, finishChan chan(*NodeResponse)) {
 
 func (me *Node) Set(item *memcache.Item, finishChan chan(*NodeResponse)) {
   go func(){
+    me.Log.Debug("SET %s", item.Key)
     err := me.client.Set(item)
     if finishChan!=nil { finishChan <- me.getNodeResponse(nil, err) }
   }()
@@ -42,6 +46,7 @@ func (me *Node) Set(item *memcache.Item, finishChan chan(*NodeResponse)) {
 
 func (me *Node) Get(key string, finishChan chan(*NodeResponse)) {
   go func(){
+    me.Log.Debug("GET %s", key)
     item, err := me.client.Get(key)
     if finishChan!=nil { finishChan <- me.getNodeResponse(item, err) }
   }()
@@ -49,6 +54,7 @@ func (me *Node) Get(key string, finishChan chan(*NodeResponse)) {
 
 func (me *Node) Delete(key string, finishChan chan(*NodeResponse)) {
   go func(){
+    me.Log.Debug("DELETE %s", key)
     err := me.client.Delete(key)
     if finishChan!=nil { finishChan <- me.getNodeResponse(nil, err) }
   }()
@@ -64,9 +70,19 @@ func (me *Node) HealthCheck() {
 
 func (me *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse {
   me.LastHealthCheck = time.Now()
-  if err == nil { me.markHealthy() } else { me.markUnhealthy() }
+  if err != nil && err != memcache.ErrCacheMiss && err != memcache.ErrCASConflict && err != memcache.ErrNotStored && err != memcache.ErrNoStats && err != memcache.ErrMalformedKey { 
+    me.markUnhealthy(err) 
+  } else { 
+    me.markHealthy(err) 
+  }
   return NewNodeResponse(me, item, err)
 }
 
-func (me *Node) markHealthy() { me.IsHealthy = true }
-func (me *Node) markUnhealthy() { me.IsHealthy = false }
+func (me *Node) markHealthy(err error) { 
+  if !me.IsHealthy { me.Log.Info("Healthy") }
+  me.IsHealthy = true
+}
+func (me *Node) markUnhealthy(err error) {
+  if me.IsHealthy { me.Log.Warn("Unhealthy (%s)", err) }
+  me.IsHealthy = false
+}
