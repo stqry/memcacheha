@@ -22,14 +22,16 @@ type Node struct {
 }
 
 // Return a new Node with the given Logger and endpoint (host:port)
-func NewNode(logger log.Logger, endpoint string) *Node {
-  return &Node{
+func NewNode(logger log.Logger, endpoint string, timeout time.Duration) *Node {
+  me := &Node{
     Endpoint: endpoint,
     Log: log.NewScopedLogger("Node "+endpoint, logger),
     IsHealthy: false,
     LastHealthCheck: time.Now().Add(-1 * HEALTHCHECK_PERIOD),
     client: memcache.New(endpoint),
   }
+  me.client.Timeout = timeout
+  return me
 } 
 
 // Add an item to the memcache server represented by this node and send the response to the given channel

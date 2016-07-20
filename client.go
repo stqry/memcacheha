@@ -20,6 +20,8 @@ type Client struct {
   Sources []NodeSource
   Log log.Logger
 
+  Timeout time.Duration
+
   shutdownChan chan(int)
   running bool
 }
@@ -333,7 +335,7 @@ func (me *Client) GetNodes() {
     for _, nodeAddr := range nodes {
       if !me.Nodes.Exists(nodeAddr) { 
         me.Log.Info("GetNodes: New Node %s", nodeAddr)
-        node := NewNode(me.Log, nodeAddr); me.Nodes.Add(node); node.HealthCheck()
+        node := NewNode(me.Log, nodeAddr, me.Timeout); me.Nodes.Add(node); node.HealthCheck()
       }
     }
   }
