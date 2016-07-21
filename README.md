@@ -82,4 +82,4 @@ Please see the [license](./LICENSE) file.
 
 ## Credits
 
-Inspired by and uses gomemcache](https://github.com/bradfitz/gomemcache) (@bradfitz).
+Inspired by and uses [gomemcache](https://github.com/bradfitz/gomemcache) by [Brad Fitzpatrick](https://github.com/bradfitz).

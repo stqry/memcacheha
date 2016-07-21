@@ -156,7 +156,7 @@ func (me *Client) Get(key string) (*memcache.Item, error) {
       if len(nodes) < nodesToRead { break }
       delete(nodes, k)
     }
-    nodeCount := len(nodes)
+    nodeCount = len(nodes)
   }
 
   finishChan := make(chan(*NodeResponse))
