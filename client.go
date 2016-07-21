@@ -184,7 +184,7 @@ func (me *Client) Get(key string) (*memcache.Item, error) {
 		if nodesToRead*2 < nodeCount {
 			nodesToRead += 1
 		}
-		for k, _ := range nodes {
+		for k := range nodes {
 			if len(nodes) <= nodesToRead {
 				break
 			}
@@ -424,7 +424,7 @@ func (me *Client) GetNodes() {
 	}
 
 	// Removed nodes
-	for nodeAddr, _ := range me.Nodes.Nodes {
+	for nodeAddr := range me.Nodes.Nodes {
 		if _, found := incomingNodes[nodeAddr]; !found {
 			me.Log.Info("GetNodes: Node Removed %s", nodeAddr)
 			delete(me.Nodes.Nodes, nodeAddr)
