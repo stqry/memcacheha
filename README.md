@@ -1,6 +1,6 @@
 # memcacheha
 
-[![](https://godoc.org/github.com/apitalent/memcacheha?status.svg)](https://godoc.org/github.com/apitalent/memcacheha)
+[![](https://godoc.org/github.com/apitalent/memcacheha?status.svg)](https://godoc.org/github.com/apitalent/memcacheha) [![Go Report Card](https://goreportcard.com/badge/github.com/apitalent/memcacheha)](https://goreportcard.com/report/github.com/apitalent/memcacheha)
 
 memcacheha wraps [gomemcache](https://github.com/bradfitz/gomemcache) to provide HA (highly available) functionality with lazy client-side synchronization.
 
