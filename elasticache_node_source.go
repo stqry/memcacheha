@@ -60,7 +60,7 @@ func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
   // Iterate nodes, get addresses
   for _, node := range cluster.CacheNodes {
     ep := node.Endpoint
-    out = append(out, fmt.Sprintf("%s:%d", ep.Address, ep.Port))
+    out = append(out, fmt.Sprintf("%s:%d", *ep.Address, *ep.Port))
   }
 
   return out, nil
