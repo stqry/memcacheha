@@ -151,9 +151,9 @@ func (me *Client) Get(key string) (*memcache.Item, error) {
   // If there are more than 2 nodes
   if nodeCount>2 {
     // Reduce to Ceil(n/2) nodes
-    nodesToRead := nodeCount/2; if nodesToRead < nodeCount*2 { nodesToRead += 1 }
+    nodesToRead := nodeCount/2; if nodesToRead*2 < nodeCount { nodesToRead += 1 }
     for k, _ := range nodes {
-      if len(nodes) < nodesToRead { break }
+      if len(nodes) <= nodesToRead { break }
       delete(nodes, k)
     }
     nodeCount = len(nodes)
