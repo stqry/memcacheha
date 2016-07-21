@@ -433,10 +433,14 @@ func (me *Client) GetNodes() {
 }
 
 // Perform a healthcheck on all nodes.
-func (me *Client) HealthCheck() {
+func (me *Client) HealthCheck() error {
 	for _, node := range me.Nodes.Nodes {
-		node.HealthCheck()
+		_, err := node.HealthCheck()
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // Stop the Client client.

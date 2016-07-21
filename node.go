@@ -89,13 +89,19 @@ func (me *Node) Touch(key string, seconds int32, finishChan chan (*NodeResponse)
 }
 
 // Perform a healthcheck on the memcache server represented by this node, update IsHealthy, and return it
-func (me *Node) HealthCheck() bool {
+func (me *Node) HealthCheck() (bool, error) {
 	// Read a Random key, expect ErrCacheMiss
 	x := make([]byte, 32)
-	rand.Read(x)
-	_, err := me.client.Get(fmt.Sprintf("%02x", x))
+	_, err := rand.Read(x)
+	if err != nil {
+		return false, err
+	}
+	_, err = me.client.Get(fmt.Sprintf("%02x", x))
+	if err != nil {
+		return false, err
+	}
 	me.getNodeResponse(nil, err)
-	return me.IsHealthy
+	return me.IsHealthy, nil
 }
 
 func (me *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse {
