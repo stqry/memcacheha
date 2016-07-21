@@ -331,15 +331,27 @@ func (me *Client) runloop() {
 
 // Update the list of nodes in the client from the configured sources.
 func (me *Client) GetNodes() {
+  incomingNodes := map[string]bool{}
+
   for _, source := range me.Sources {
     nodes, err := source.GetNodes()
     if err != nil { me.Log.Error("GetNodes: Source Error: %s", err); return }
 
+    // Added Nodes
     for _, nodeAddr := range nodes {
+      incomingNodes[nodeAddr] = true
       if !me.Nodes.Exists(nodeAddr) { 
         me.Log.Info("GetNodes: New Node %s", nodeAddr)
         node := NewNode(me.Log, nodeAddr, me.Timeout); me.Nodes.Add(node); node.HealthCheck()
       }
+    }
+  }
+
+  // Removed nodes
+  for nodeAddr, _  := range me.Nodes.Nodes {
+    if _, found := incomingNodes[nodeAddr]; !found {
+      me.Log.Info("GetNodes: Node Removed %s", nodeAddr)
+      delete(me.Nodes.Nodes, nodeAddr)
     }
   }
 }
