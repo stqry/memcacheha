@@ -341,7 +341,7 @@ func (me *Client) GetNodes() {
     for _, nodeAddr := range nodes {
       incomingNodes[nodeAddr] = true
       if !me.Nodes.Exists(nodeAddr) { 
-        me.Log.Info("GetNodes: New Node %s", nodeAddr)
+        me.Log.Info("GetNodes: Node Added %s", nodeAddr)
         node := NewNode(me.Log, nodeAddr, me.Timeout); me.Nodes.Add(node); node.HealthCheck()
       }
     }

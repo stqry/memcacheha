@@ -53,7 +53,7 @@ func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
   var out []string
 
   // Check that there is only one cluster, and that it is a memcache cluster
-  if len(output.CacheClusters)!=1 { return nil, ErrElastiCacheMultipleClusters }
+  if len(output.CacheClusters)>1 { return nil, ErrElastiCacheMultipleClusters }
   cluster := output.CacheClusters[0]
   if *cluster.Engine != ELASTICACHE_CLUSTER_TYPE_MEMCACHE { return nil, fmt.Errorf("Not a memcache cluster, type %s", *cluster.Engine) }
 
