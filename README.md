@@ -31,6 +31,27 @@ Nodes are discovered through [NodeSource](./node_source.go)s - currently, two ar
 
 Multiple sources can be used, passed to `New` in [Client](./client.go). All sources will be queried once every 10 seconds (GET_NODES_PERIOD).
 
+## Example
+
+```golang
+ 	// You can use any type that implements the Logger interface.
+	logger = log.NewConsoleLogger("debug")
+
+	// Configure an AWS ElasticCache Source
+	source := memcacheha.NewElastiCacheNodeSource(logger, "ap-southeast-2", "myMemcacheCluster")  
+
+	// Get a new client
+	client := memcacheha.New(logger, source)
+
+	// Start the nanoservice
+	client.Start()
+
+	// ...use client as if you were talking to one memcache via gomemcache...
+
+	// Stop the nanoservice
+	client.Stop()
+```
+
 ## Detail
 
 ### Failover condition assumptions
