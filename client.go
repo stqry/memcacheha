@@ -148,10 +148,15 @@ func (me *Client) Get(key string) (*memcache.Item, error) {
   // Bug out early if no nodes
   if nodeCount == 0 { return nil, ErrNoHealthyNodes }
 
-  // Reduce to less than 3 nodes - thanks to golang, these 2 nodes will be random
-  for k, _ := range nodes {
-    if len(nodes) < 3 { break }
-    delete(nodes, k)
+  // If there are more than 2 nodes
+  if nodeCount>2 {
+    // Reduce to Ceil(n/2) nodes
+    nodesToRead := nodeCount/2; if nodesToRead < nodeCount*2 { nodesToRead += 1 }
+    for k, _ := range nodes {
+      if len(nodes) < nodesToRead { break }
+      delete(nodes, k)
+    }
+    nodeCount := len(nodes)
   }
 
   finishChan := make(chan(*NodeResponse))

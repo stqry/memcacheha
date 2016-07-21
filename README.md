@@ -4,23 +4,23 @@
 
 memcacheha wraps `github.com/bradfitz/gomemcache/memcache` to provide HA (highly available) functionality with lazy client-side synchronization.
 
-# How is this different from gomemcache multi-server?
+# How is this different from gomemcache multi-node?
 
-gomemcache performs client-side sharding (distributes keys across multiple memcache servers), whereas memcacheha 
-is designed to write to all memcache servers and synchronise servers with missing data during reads. This is useful 
+[gomemcache](github.com/bradfitz/gomemcache/memcache) performs client-side sharding (distributes keys across multiple memcache nodes), whereas memcacheha 
+is designed to write to all memcache nodes and synchronise nodes with missing data during reads. This is useful 
 in situations where memcache availability and consistency is not negligible, i.e. when memcache is being used as a 
 session store.
 
 ## Operation
 
-memcache operates as a Client nanoservice, maintaining a pool of connections to all configured or discovered memcache
-servers. 
+MemcacheHA operates as a Client nanoservice, maintaining a pool of connections to all configured or discovered memcache
+nodes.
 
-The client checks the health of all configured servers periodically (every 5 seconds, HEALTHCHECK_PERIOD)
+The client checks the health of all configured nodes periodically (every 5 seconds, HEALTHCHECK_PERIOD)
 
-Writes are mirrored to all servers concurrently, and consistency is achieved by not returning until all writes 
-have acknowledged or timed out. Reads are performed from at least n/2 servers where n is the total number of currently
-healthy nodes - if at least one server returns data, items are (transparently) written to servers with missing data. 
+Writes are mirrored to all nodes concurrently, and consistency is achieved by not returning until all writes 
+have acknowledged or timed out. Reads are performed from at least n/2 nodes where n is the total number of currently
+healthy nodes - if at least one node returns data, items are (transparently) written to nodes with missing data. 
 
 ## Autodiscovery
 
@@ -62,7 +62,8 @@ Multiple sources can be used, passed to `New` in [Client](./client.go). All sour
 
 ### Deleting
 
-* Keys will be concurrently deleted from 
+* Keys will be concurrently deleted from all healthy nodes.
+* **CAVEAT:** If a node drops from the cluster, misses a DELETE, and then rejoins the cluster maintaining its old data, the next GET will synchronise the data to all nodes again. This behaviour can be mitigated by always setting expiry timeouts on keys.
 
 ### Health checks
 
