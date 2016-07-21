@@ -7,10 +7,13 @@ import (
 	"time"
 )
 
+// The version of this memcacheha
 const VERSION = "0.1.0"
 
 var (
-	GET_NODES_PERIOD   time.Duration = time.Duration(10 * time.Second)
+	// The period between checking all sources for new or deprecated nodes
+	GET_NODES_PERIOD time.Duration = time.Duration(10 * time.Second)
+	// The period between healthchecks on nodes
 	HEALTHCHECK_PERIOD time.Duration = time.Duration(5 * time.Second)
 )
 

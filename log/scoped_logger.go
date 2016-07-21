@@ -1,10 +1,12 @@
 package log
 
+// ScopedLogger wraps an existing logger, prefixing all logs with a string scope
 type ScopedLogger struct {
 	Logger Logger
 	Scope  string
 }
 
+// Return a new ScopedLogger with the given scope and base logger
 func NewScopedLogger(name string, logger Logger) *ScopedLogger {
 	return &ScopedLogger{
 		Scope:  name,
@@ -12,7 +14,10 @@ func NewScopedLogger(name string, logger Logger) *ScopedLogger {
 	}
 }
 
-func (me *ScopedLogger) GetLogLevel() int         { return me.Logger.GetLogLevel() }
+// Get the current logging level
+func (me *ScopedLogger) GetLogLevel() int { return me.Logger.GetLogLevel() }
+
+// Set the current logging level
 func (me *ScopedLogger) SetLogLevel(loglevel int) { me.Logger.SetLogLevel(loglevel) }
 
 // Logs a Raw message (-----) with the specified message and Printf-style arguments.

@@ -28,6 +28,7 @@ var LogLevelString map[int]string = map[int]string{
 	LOG_LEVEL_FATAL: "FATAL",
 }
 
+// Logger defines a generic logging interface
 type Logger interface {
 	GetLogLevel() int
 	SetLogLevel(loglevel int)

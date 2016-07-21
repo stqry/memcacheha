@@ -27,7 +27,10 @@ func NewConsoleLogger(logLevel string) *ConsoleLogger {
 	return logger
 }
 
-func (me *ConsoleLogger) GetLogLevel() int         { return me.LogLevel }
+// Get the current log level
+func (me *ConsoleLogger) GetLogLevel() int { return me.LogLevel }
+
+// Set the current log level
 func (me *ConsoleLogger) SetLogLevel(loglevel int) { me.LogLevel = loglevel }
 
 // Logs a Raw message (-----) with the specified message and Printf-style arguments.
@@ -78,13 +81,14 @@ func (me *ConsoleLogger) printLog(level string, message string, args ...interfac
 	fmt.Print("\n")
 }
 
+// Get the current time in UTC (Zulu), in RFC3339 format.
 func GetTimeUTCString() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
+// Parse the given log level string into a log level for use with SetLogLevel()
 func parseLogLevel(logLevel string) int {
 	level, found := StringLogLevel[strings.ToUpper(logLevel)]
-
 	if !found {
 		return LOG_LEVEL_UNKNOWN
 	}

@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	ELASTICACHE_CLUSTER_TYPE_MEMCACHE = "memcached"
+	// The AWS Engine type for a memcached cluster
+	ELASTICACHE_ENGINE_MEMCACHE = "memcached"
 )
 
 // ElastiCacheNodeSource represents a source of nodes from an AWS ElastiCache cluster
@@ -59,7 +60,7 @@ func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
 		return nil, ErrElastiCacheMultipleClusters
 	}
 	cluster := output.CacheClusters[0]
-	if *cluster.Engine != ELASTICACHE_CLUSTER_TYPE_MEMCACHE {
+	if *cluster.Engine != ELASTICACHE_ENGINE_MEMCACHE {
 		return nil, fmt.Errorf("Not a memcache cluster, type %s", *cluster.Engine)
 	}
 
