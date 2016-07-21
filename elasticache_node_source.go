@@ -12,7 +12,7 @@ import(
 )
 
 const(
-  ELASTICACHE_CLUSTER_TYPE_MEMCACHE = "memcache"
+  ELASTICACHE_CLUSTER_TYPE_MEMCACHE = "memcached"
 )
 
 // ElastiCacheNodeSource represents a source of nodes from an AWS ElastiCache cluster
@@ -55,7 +55,7 @@ func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
   // Check that there is only one cluster, and that it is a memcache cluster
   if len(output.CacheClusters)!=1 { return nil, ErrElastiCacheMultipleClusters }
   cluster := output.CacheClusters[0]
-  if *cluster.CacheNodeType != ELASTICACHE_CLUSTER_TYPE_MEMCACHE { return nil, fmt.Errorf("Not a memcache cluster, type %s", *cluster.CacheNodeType) }
+  if *cluster.Engine != ELASTICACHE_CLUSTER_TYPE_MEMCACHE { return nil, fmt.Errorf("Not a memcache cluster, type %s", *cluster.CacheNodeType) }
 
   // Iterate nodes, get addresses
   for _, node := range cluster.CacheNodes {
