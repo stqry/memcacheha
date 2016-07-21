@@ -10,7 +10,7 @@ const (
 	LOG_LEVEL_FATAL   = iota
 )
 
-// Map of uppercase log level name strings to int log levels
+// StringLogLevel is a map of uppercase log level name strings to int log levels
 var StringLogLevel map[string]int = map[string]int{
 	"DEBUG": LOG_LEVEL_DEBUG,
 	"INFO":  LOG_LEVEL_INFO,
@@ -19,7 +19,7 @@ var StringLogLevel map[string]int = map[string]int{
 	"FATAL": LOG_LEVEL_FATAL,
 }
 
-// Map of int log levels to string log level names
+// LogLevelString is a map of int log levels to string log level names
 var LogLevelString map[int]string = map[int]string{
 	LOG_LEVEL_DEBUG: "DEBUG",
 	LOG_LEVEL_INFO:  "INFO",

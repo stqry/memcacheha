@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-// This is a type to provide ConsoleLogger to the system
+// ConsoleLogger is a logger that logs to STDOUT (console)
 type ConsoleLogger struct {
 	LogLevel int
 
 	mutex *sync.Mutex
 }
 
-// The function creates a New ConsoleLogger with the loglevel supplied
+// NewConsoleLogger returns a new ConsoleLogger with the loglevel supplied
 func NewConsoleLogger(logLevel string) *ConsoleLogger {
 	logger := &ConsoleLogger{
 		LogLevel: parseLogLevel(strings.ToLower(strings.Trim(logLevel, " "))),
@@ -27,28 +27,28 @@ func NewConsoleLogger(logLevel string) *ConsoleLogger {
 	return logger
 }
 
-// Get the current log level
+// GetLogLevel returns the current log level
 func (me *ConsoleLogger) GetLogLevel() int { return me.LogLevel }
 
-// Set the current log level
+// SetLogLevel sets the current log level
 func (me *ConsoleLogger) SetLogLevel(loglevel int) { me.LogLevel = loglevel }
 
-// Logs a Raw message (-----) with the specified message and Printf-style arguments.
+// Raw logs a Raw message (-----) with the specified message and Printf-style arguments.
 func (me *ConsoleLogger) Raw(message string, args ...interface{}) {
 	me.printLog("-----", message, args...)
 }
 
-// Logs a FATAL message with the specified message and Printf-style arguments.
+// Fatal logs a FATAL message with the specified message and Printf-style arguments.
 func (me *ConsoleLogger) Fatal(message string, args ...interface{}) {
 	me.printLog("FATAL", message, args...)
 }
 
-// Logs an ERROR message with the specified message and Printf-style arguments.
+// Error logs an ERROR message with the specified message and Printf-style arguments.
 func (me *ConsoleLogger) Error(message string, args ...interface{}) {
 	me.printLog("ERROR", message, args...)
 }
 
-// Logs a WARN message with the specified message and Printf-style arguments.
+// Warn logs a WARN message with the specified message and Printf-style arguments.
 func (me *ConsoleLogger) Warn(message string, args ...interface{}) {
 	if me.LogLevel > LOG_LEVEL_WARN {
 		return
@@ -56,7 +56,7 @@ func (me *ConsoleLogger) Warn(message string, args ...interface{}) {
 	me.printLog("WARN ", message, args...)
 }
 
-// Logs an INFO message with the specified message and Printf-style arguments.
+// Info logs an INFO message with the specified message and Printf-style arguments.
 func (me *ConsoleLogger) Info(message string, args ...interface{}) {
 	if me.LogLevel > LOG_LEVEL_INFO {
 		return
@@ -64,7 +64,7 @@ func (me *ConsoleLogger) Info(message string, args ...interface{}) {
 	me.printLog("INFO ", message, args...)
 }
 
-// Logs a DEBUG message with the specified message and Printf-style arguments.
+// Debug logs a DEBUG message with the specified message and Printf-style arguments.
 func (me *ConsoleLogger) Debug(message string, args ...interface{}) {
 	if me.LogLevel > LOG_LEVEL_DEBUG {
 		return
@@ -81,7 +81,7 @@ func (me *ConsoleLogger) printLog(level string, message string, args ...interfac
 	fmt.Print("\n")
 }
 
-// Get the current time in UTC (Zulu), in RFC3339 format.
+// GetTimeUTCString returns the current time in UTC (Zulu), in RFC3339 format.
 func GetTimeUTCString() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
