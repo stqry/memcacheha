@@ -2,11 +2,11 @@
 
 [![](https://godoc.org/github.com/apitalent/memcacheha?status.svg)](https://godoc.org/github.com/apitalent/memcacheha)
 
-memcacheha wraps `github.com/bradfitz/gomemcache/memcache` to provide HA (highly available) functionality with lazy client-side synchronization.
+memcacheha wraps [gomemcache](https://github.com/bradfitz/gomemcache) to provide HA (highly available) functionality with lazy client-side synchronization.
 
 # How is this different from gomemcache multi-node?
 
-[gomemcache](github.com/bradfitz/gomemcache/memcache) performs client-side sharding (distributes keys across multiple memcache nodes), whereas memcacheha 
+[gomemcache](https://github.com/bradfitz/gomemcache) performs client-side sharding (distributes keys across multiple memcache nodes), whereas memcacheha 
 is designed to write to all memcache nodes and synchronise nodes with missing data during reads. This is useful 
 in situations where memcache availability and consistency is not negligible, i.e. when memcache is being used as a 
 session store.
@@ -27,7 +27,7 @@ healthy nodes - if at least one node returns data, items are (transparently) wri
 Nodes are discovered through [NodeSource](./node_source.go)s - currently, two are available:
 
 * [StaticNodeSource](./static_node_source.go) - Allows nodes to be configured statically (e.g. from a config file or ENV)
-* [ElastiCacheNodeSource](./elasticache_node_source) - Retreives nodes from an AWS ElastiCache cluster
+* [ElastiCacheNodeSource](./elasticache_node_source.go) - Retreives nodes from an AWS ElastiCache cluster
 
 Multiple sources can be used, passed to `New` in [Client](./client.go). All sources will be queried once every 10 seconds (GET_NODES_PERIOD).
 
