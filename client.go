@@ -196,17 +196,14 @@ func (me *Client) Get(key string) (*memcache.Item, error) {
       return
     }
 
-    // Something nasty happened
-    finishChan <- nil
+    // Not found
+    finishChan <- NewNodeResponse(nil, nil, memcache.ErrCacheMiss)
   }()
 
   // Wait for aggregate response
   res := <- finishChan
-  // return result
-  if res!=nil { return res.Item, res.Error }
 
-  // End case for something nasty
-  return nil, ErrUnknown
+  return res.Item, res.Error
 }
 
 // Delete deletes the item with the provided key. The error ErrCacheMiss is returned if the item didn't already exist in the cache.
