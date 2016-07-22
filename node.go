@@ -98,7 +98,7 @@ func (node *Node) HealthCheck() (bool, error) {
 		return false, err
 	}
 	_, err = node.client.Get(fmt.Sprintf("%02x", x))
-	if err != nil {
+	if err != nil && err != memcache.ErrCacheMiss {
 		return false, err
 	}
 	node.getNodeResponse(nil, err)
