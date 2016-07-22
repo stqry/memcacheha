@@ -78,9 +78,9 @@ func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
 }
 
 var (
-  // ErrElastiCacheMultipleClusters is an error meaning that the AWS discovery call returned more than one cluster
-  ErrElastiCacheMultipleClusters = errors.New("DescribeCacheClusters returned more than one cluster")
+	// ErrElastiCacheMultipleClusters is an error meaning that the AWS discovery call returned more than one cluster
+	ErrElastiCacheMultipleClusters = errors.New("DescribeCacheClusters returned more than one cluster")
 
-  // ErrElastiCacheNotMemcache is an error meaning that the AWS discovery call returned a cluster that is not a memcached cluster
-	ErrElastiCacheNotMemcache      = errors.New("Not a memcache cluster")
+	// ErrElastiCacheNotMemcache is an error meaning that the AWS discovery call returned a cluster that is not a memcached cluster
+	ErrElastiCacheNotMemcache = errors.New("Not a memcache cluster")
 )
