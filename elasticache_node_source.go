@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	// The AWS Engine type for a memcached cluster
+	// ELASTICACHE_ENGINE_MEMCACHE is the AWS Engine type for a memcached cluster
 	ELASTICACHE_ENGINE_MEMCACHE = "memcached"
 )
 
@@ -23,7 +23,7 @@ type ElastiCacheNodeSource struct {
 	Log            log.Logger
 }
 
-// Return a new ElastiCacheNodeSource with the given logger, AWS region, and cache cluster ID
+// NewElastiCacheNodeSource returns a new ElastiCacheNodeSource with the given logger, AWS region, and cache cluster ID
 func NewElastiCacheNodeSource(logger log.Logger, awsRegion string, cacheClusterId string) *ElastiCacheNodeSource {
 	inst := &ElastiCacheNodeSource{
 		AWSRegion:      awsRegion,
@@ -33,7 +33,7 @@ func NewElastiCacheNodeSource(logger log.Logger, awsRegion string, cacheClusterI
 	return inst
 }
 
-// Implement NodeSource, query the AWS API and get the nodes associated with the configured CacheClusterId
+// GetNodes implements NodeSource, querying the AWS API to get the nodes in the configured CacheClusterId
 func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
 	// AWS Session / Client
 	sess := session.New(&aws.Config{Region: aws.String(me.AWSRegion)})
@@ -78,6 +78,9 @@ func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
 }
 
 var (
-	ErrElastiCacheMultipleClusters = errors.New("DescribeCacheClusters returned more than one cluster")
+  // ErrElastiCacheMultipleClusters is an error meaning that the AWS discovery call returned more than one cluster
+  ErrElastiCacheMultipleClusters = errors.New("DescribeCacheClusters returned more than one cluster")
+
+  // ErrElastiCacheNotMemcache is an error meaning that the AWS discovery call returned a cluster that is not a memcached cluster
 	ErrElastiCacheNotMemcache      = errors.New("Not a memcache cluster")
 )

@@ -11,7 +11,7 @@ type NodeResponse struct {
 	Error error
 }
 
-// Return a new NodeResponse with the specified Node, Item and Error
+// NewNodeResponse returns a new NodeResponse with the specified Node, Item and Error
 func NewNodeResponse(node *Node, item *memcache.Item, err error) *NodeResponse {
 	return &NodeResponse{
 		Node:  node,

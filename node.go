@@ -21,7 +21,7 @@ type Node struct {
 	client *memcache.Client
 }
 
-// Return a new Node with the given Logger and endpoint (host:port)
+// NewNode returns a new Node with the given Logger and endpoint (host:port)
 func NewNode(logger log.Logger, endpoint string, timeout time.Duration) *Node {
 	me := &Node{
 		Endpoint:        endpoint,
@@ -78,6 +78,7 @@ func (me *Node) Delete(key string, finishChan chan (*NodeResponse)) {
 	}()
 }
 
+// Touch an item with the given key, updating its expiry.
 func (me *Node) Touch(key string, seconds int32, finishChan chan (*NodeResponse)) {
 	go func() {
 		me.Log.Debug("TOUCH %s", key)
@@ -88,7 +89,7 @@ func (me *Node) Touch(key string, seconds int32, finishChan chan (*NodeResponse)
 	}()
 }
 
-// Perform a healthcheck on the memcache server represented by this node, update IsHealthy, and return it
+// HealthCheck performs a healthcheck on the memcache server represented by this node, update IsHealthy, and return it
 func (me *Node) HealthCheck() (bool, error) {
 	// Read a Random key, expect ErrCacheMiss
 	x := make([]byte, 32)

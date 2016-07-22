@@ -7,17 +7,17 @@ import (
 	"time"
 )
 
-// The version of this memcacheha
+// VERSION is the version of this memcacheha client
 const VERSION = "0.1.0"
 
 var (
-	// The period between checking all sources for new or deprecated nodes
+	// GET_NODES_PERIOD is the period between checking all sources for new or deprecated nodes
 	GET_NODES_PERIOD time.Duration = time.Duration(10 * time.Second)
-	// The period between healthchecks on nodes
+	// HEALTHCHECK_PERIOD is the period between healthchecks on nodes
 	HEALTHCHECK_PERIOD time.Duration = time.Duration(5 * time.Second)
 )
 
-// The Client type represents the cluster client.
+// Client represents the cluster client.
 type Client struct {
 	Nodes   *NodeList
 	Sources []NodeSource
@@ -29,7 +29,7 @@ type Client struct {
 	running      bool
 }
 
-// Return a new Client with the specified logger and NodeSources
+// New returns a new Client with the specified logger and NodeSources
 func New(logger log.Logger, sources ...NodeSource) *Client {
 	i := &Client{
 		Nodes:        NewNodeList(),
@@ -400,7 +400,7 @@ func (me *Client) runloop() {
 
 }
 
-// Update the list of nodes in the client from the configured sources.
+// GetNodes updates the list of nodes in the client from the configured sources.
 func (me *Client) GetNodes() {
 	incomingNodes := map[string]bool{}
 
@@ -432,7 +432,7 @@ func (me *Client) GetNodes() {
 	}
 }
 
-// Perform a healthcheck on all nodes.
+// HealthCheck performs a healthcheck on all nodes.
 func (me *Client) HealthCheck() error {
 	for _, node := range me.Nodes.Nodes {
 		_, err := node.HealthCheck()
