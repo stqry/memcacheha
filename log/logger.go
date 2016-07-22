@@ -5,15 +5,15 @@ const (
 	// LOG_LEVEL_UNKNOWN represents an undefined log level
 	LOG_LEVEL_UNKNOWN = iota
 	// LOG_LEVEL_DEBUG represents the DEBUG log level
-	LOG_LEVEL_DEBUG   = iota
+	LOG_LEVEL_DEBUG = iota
 	// LOG_LEVEL_INFO represents the INFO log level
-	LOG_LEVEL_INFO    = iota
+	LOG_LEVEL_INFO = iota
 	// LOG_LEVEL_WARN represents the WARN log level
-	LOG_LEVEL_WARN    = iota
+	LOG_LEVEL_WARN = iota
 	// LOG_LEVEL_ERROR represents the ERROR log level
-	LOG_LEVEL_ERROR   = iota
+	LOG_LEVEL_ERROR = iota
 	// LOG_LEVEL_FATAL represents the FATAL log level
-	LOG_LEVEL_FATAL   = iota
+	LOG_LEVEL_FATAL = iota
 )
 
 // StringLogLevel is a map of uppercase log level name strings to int log levels

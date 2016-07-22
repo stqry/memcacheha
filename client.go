@@ -1,4 +1,4 @@
-// memcacheha wraps github.com/bradfitz/gomemcache/memcache to provide HA (highly available) functionality with lazy client-side synchronization.
+// Package memcacheha wraps github.com/bradfitz/gomemcache/memcache to provide HA (highly available) functionality with lazy client-side synchronization.
 package memcacheha
 
 import (
@@ -273,7 +273,7 @@ func (client *Client) Delete(key string) error {
 	}
 
 	// If any node returns ErrCacheMiss return this instead.
-	var errToReturn error = nil
+	var errToReturn error
 
 	// Handle responses
 	go func() {
@@ -326,7 +326,7 @@ func (client *Client) Touch(key string, seconds int32) error {
 	}
 
 	// If any node returns ErrCacheMiss return this instead.
-	var errToReturn error = nil
+	var errToReturn error
 
 	// Handle responses
 	go func() {
@@ -384,7 +384,10 @@ func (client *Client) runloop() {
 			}
 
 			if lastHealthCheck.Add(HEALTHCHECK_PERIOD).Before(now) {
-				client.HealthCheck()
+				err := client.HealthCheck()
+				if err != nil {
+					client.Log.Warn("HealthCheck returned an error: %s", err)
+				}
 				lastHealthCheck = time.Now()
 			}
 
