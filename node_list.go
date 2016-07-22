@@ -13,9 +13,9 @@ func NewNodeList() *NodeList {
 }
 
 // GetHealthyNodes returns a map of config endpoints to Nodes where the node IsHealthy is true
-func (me *NodeList) GetHealthyNodes() map[string]*Node {
+func (nodeList *NodeList) GetHealthyNodes() map[string]*Node {
 	out := map[string]*Node{}
-	for _, node := range me.Nodes {
+	for _, node := range nodeList.Nodes {
 		if node.IsHealthy {
 			out[node.Endpoint] = node
 		}
@@ -24,9 +24,9 @@ func (me *NodeList) GetHealthyNodes() map[string]*Node {
 }
 
 // GetHealthyNodeCount returns the count of Nodes where the node IsHealthy is true
-func (me *NodeList) GetHealthyNodeCount() int {
+func (nodeList *NodeList) GetHealthyNodeCount() int {
 	healthy := 0
-	for _, node := range me.Nodes {
+	for _, node := range nodeList.Nodes {
 		if node.IsHealthy {
 			healthy++
 		}
@@ -35,12 +35,12 @@ func (me *NodeList) GetHealthyNodeCount() int {
 }
 
 // Exists returns true if a node for the given endpoint exists
-func (me *NodeList) Exists(nodeAddr string) bool {
-	_, found := me.Nodes[nodeAddr]
+func (nodeList *NodeList) Exists(nodeAddr string) bool {
+	_, found := nodeList.Nodes[nodeAddr]
 	return found
 }
 
 // Add the given node to this list
-func (me *NodeList) Add(node *Node) {
-	me.Nodes[node.Endpoint] = node
+func (nodeList *NodeList) Add(node *Node) {
+	nodeList.Nodes[node.Endpoint] = node
 }

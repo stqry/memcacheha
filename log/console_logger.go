@@ -28,53 +28,53 @@ func NewConsoleLogger(logLevel string) *ConsoleLogger {
 }
 
 // GetLogLevel returns the current log level
-func (me *ConsoleLogger) GetLogLevel() int { return me.LogLevel }
+func (consoleLogger *ConsoleLogger) GetLogLevel() int { return consoleLogger.LogLevel }
 
 // SetLogLevel sets the current log level
-func (me *ConsoleLogger) SetLogLevel(loglevel int) { me.LogLevel = loglevel }
+func (consoleLogger *ConsoleLogger) SetLogLevel(loglevel int) { consoleLogger.LogLevel = loglevel }
 
 // Raw logs a Raw message (-----) with the specified message and Printf-style arguments.
-func (me *ConsoleLogger) Raw(message string, args ...interface{}) {
-	me.printLog("-----", message, args...)
+func (consoleLogger *ConsoleLogger) Raw(message string, args ...interface{}) {
+	consoleLogger.printLog("-----", message, args...)
 }
 
 // Fatal logs a FATAL message with the specified message and Printf-style arguments.
-func (me *ConsoleLogger) Fatal(message string, args ...interface{}) {
-	me.printLog("FATAL", message, args...)
+func (consoleLogger *ConsoleLogger) Fatal(message string, args ...interface{}) {
+	consoleLogger.printLog("FATAL", message, args...)
 }
 
 // Error logs an ERROR message with the specified message and Printf-style arguments.
-func (me *ConsoleLogger) Error(message string, args ...interface{}) {
-	me.printLog("ERROR", message, args...)
+func (consoleLogger *ConsoleLogger) Error(message string, args ...interface{}) {
+	consoleLogger.printLog("ERROR", message, args...)
 }
 
 // Warn logs a WARN message with the specified message and Printf-style arguments.
-func (me *ConsoleLogger) Warn(message string, args ...interface{}) {
-	if me.LogLevel > LOG_LEVEL_WARN {
+func (consoleLogger *ConsoleLogger) Warn(message string, args ...interface{}) {
+	if consoleLogger.LogLevel > LOG_LEVEL_WARN {
 		return
 	}
-	me.printLog("WARN ", message, args...)
+	consoleLogger.printLog("WARN ", message, args...)
 }
 
 // Info logs an INFO message with the specified message and Printf-style arguments.
-func (me *ConsoleLogger) Info(message string, args ...interface{}) {
-	if me.LogLevel > LOG_LEVEL_INFO {
+func (consoleLogger *ConsoleLogger) Info(message string, args ...interface{}) {
+	if consoleLogger.LogLevel > LOG_LEVEL_INFO {
 		return
 	}
-	me.printLog("INFO ", message, args...)
+	consoleLogger.printLog("INFO ", message, args...)
 }
 
 // Debug logs a DEBUG message with the specified message and Printf-style arguments.
-func (me *ConsoleLogger) Debug(message string, args ...interface{}) {
-	if me.LogLevel > LOG_LEVEL_DEBUG {
+func (consoleLogger *ConsoleLogger) Debug(message string, args ...interface{}) {
+	if consoleLogger.LogLevel > LOG_LEVEL_DEBUG {
 		return
 	}
-	me.printLog("DEBUG", message, args...)
+	consoleLogger.printLog("DEBUG", message, args...)
 }
 
-func (me *ConsoleLogger) printLog(level string, message string, args ...interface{}) {
-	me.mutex.Lock()
-	defer me.mutex.Unlock()
+func (consoleLogger *ConsoleLogger) printLog(level string, message string, args ...interface{}) {
+	consoleLogger.mutex.Lock()
+	defer consoleLogger.mutex.Unlock()
 
 	fmt.Printf("%s [%s] ", GetTimeUTCString(), level)
 	fmt.Printf(message, args...)

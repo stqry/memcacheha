@@ -34,15 +34,15 @@ func NewElastiCacheNodeSource(logger log.Logger, awsRegion string, cacheClusterI
 }
 
 // GetNodes implements NodeSource, querying the AWS API to get the nodes in the configured CacheClusterId
-func (me *ElastiCacheNodeSource) GetNodes() ([]string, error) {
+func (elastiCacheNodeSource *ElastiCacheNodeSource) GetNodes() ([]string, error) {
 	// AWS Session / Client
-	sess := session.New(&aws.Config{Region: aws.String(me.AWSRegion)})
+	sess := session.New(&aws.Config{Region: aws.String(elastiCacheNodeSource.AWSRegion)})
 	client := elasticache.New(sess)
 
 	// Create input struct
 	x := true
 	input := &elasticache.DescribeCacheClustersInput{
-		CacheClusterId:    &me.CacheClusterId,
+		CacheClusterId:    &elastiCacheNodeSource.CacheClusterId,
 		ShowCacheNodeInfo: &x,
 	}
 

@@ -15,37 +15,37 @@ func NewScopedLogger(name string, logger Logger) *ScopedLogger {
 }
 
 // GetLogLevel returns the current logging level
-func (me *ScopedLogger) GetLogLevel() int { return me.Logger.GetLogLevel() }
+func (scopedLogger *ScopedLogger) GetLogLevel() int { return scopedLogger.Logger.GetLogLevel() }
 
 // SetLogLevel sets the current logging level
-func (me *ScopedLogger) SetLogLevel(loglevel int) { me.Logger.SetLogLevel(loglevel) }
+func (scopedLogger *ScopedLogger) SetLogLevel(loglevel int) { scopedLogger.Logger.SetLogLevel(loglevel) }
 
 // Raw logs a Raw message (-----) with the specified message and Printf-style arguments.
-func (me *ScopedLogger) Raw(message string, args ...interface{}) {
-	me.Logger.Raw(me.Scope+": "+message, args...)
+func (scopedLogger *ScopedLogger) Raw(message string, args ...interface{}) {
+	scopedLogger.Logger.Raw(scopedLogger.Scope+": "+message, args...)
 }
 
 // Fatal logs a FATAL message with the specified message and Printf-style arguments.
-func (me *ScopedLogger) Fatal(message string, args ...interface{}) {
-	me.Logger.Fatal(me.Scope+": "+message, args...)
+func (scopedLogger *ScopedLogger) Fatal(message string, args ...interface{}) {
+	scopedLogger.Logger.Fatal(scopedLogger.Scope+": "+message, args...)
 }
 
 // Error logs an ERROR message with the specified message and Printf-style arguments.
-func (me *ScopedLogger) Error(message string, args ...interface{}) {
-	me.Logger.Error(me.Scope+": "+message, args...)
+func (scopedLogger *ScopedLogger) Error(message string, args ...interface{}) {
+	scopedLogger.Logger.Error(scopedLogger.Scope+": "+message, args...)
 }
 
 // Warn logs a WARN message with the specified message and Printf-style arguments.
-func (me *ScopedLogger) Warn(message string, args ...interface{}) {
-	me.Logger.Warn(me.Scope+": "+message, args...)
+func (scopedLogger *ScopedLogger) Warn(message string, args ...interface{}) {
+	scopedLogger.Logger.Warn(scopedLogger.Scope+": "+message, args...)
 }
 
 // Info logs an INFO message with the specified message and Printf-style arguments.
-func (me *ScopedLogger) Info(message string, args ...interface{}) {
-	me.Logger.Info(me.Scope+": "+message, args...)
+func (scopedLogger *ScopedLogger) Info(message string, args ...interface{}) {
+	scopedLogger.Logger.Info(scopedLogger.Scope+": "+message, args...)
 }
 
 // Debug logs a DEBUG message with the specified message and Printf-style arguments.
-func (me *ScopedLogger) Debug(message string, args ...interface{}) {
-	me.Logger.Debug(me.Scope+": "+message, args...)
+func (scopedLogger *ScopedLogger) Debug(message string, args ...interface{}) {
+	scopedLogger.Logger.Debug(scopedLogger.Scope+": "+message, args...)
 }

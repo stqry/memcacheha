@@ -43,9 +43,9 @@ func New(logger log.Logger, sources ...NodeSource) *Client {
 }
 
 // Add writes the given item, if no value already exists for its key. ErrNotStored is returned if that condition is not met.
-func (me *Client) Add(item *memcache.Item) error {
+func (client *Client) Add(item *memcache.Item) error {
 	// Get all nodes that are marked healthy
-	nodes := me.Nodes.GetHealthyNodes()
+	nodes := client.Nodes.GetHealthyNodes()
 	nodeCount := len(nodes)
 
 	// Bug out early if no nodes
@@ -90,9 +90,9 @@ func (me *Client) Add(item *memcache.Item) error {
 		// Where there any ErrNotStored?
 		if doSync {
 			if len(nodesToSync) > 0 {
-				me.Log.Info("Add: Synchronising %d nodes", len(nodesToSync))
+				client.Log.Info("Add: Synchronising %d nodes", len(nodesToSync))
 				// Re-read the original
-				item, err := me.Get(item.Key)
+				item, err := client.Get(item.Key)
 				if err != nil {
 					// Write to all sync nodes unconditionally
 					for _, node := range nodesToSync {
@@ -106,7 +106,7 @@ func (me *Client) Add(item *memcache.Item) error {
 		}
 
 		// If this happened, writes to all nodes failed
-		if me.Nodes.GetHealthyNodeCount() == 0 {
+		if client.Nodes.GetHealthyNodeCount() == 0 {
 			finishChan <- ErrNoHealthyNodes
 			return
 		}
@@ -120,9 +120,9 @@ func (me *Client) Add(item *memcache.Item) error {
 }
 
 // Set writes the given item, unconditionally.
-func (me *Client) Set(item *memcache.Item) error {
+func (client *Client) Set(item *memcache.Item) error {
 	// Get all nodes that are marked healthy
-	nodes := me.Nodes.GetHealthyNodes()
+	nodes := client.Nodes.GetHealthyNodes()
 	nodeCount := len(nodes)
 
 	// Bug out early if no nodes
@@ -154,7 +154,7 @@ func (me *Client) Set(item *memcache.Item) error {
 		}
 
 		// If this happened, writes to all nodes failed
-		if me.Nodes.GetHealthyNodeCount() == 0 {
+		if client.Nodes.GetHealthyNodeCount() == 0 {
 			finishChan <- ErrNoHealthyNodes
 			return
 		}
@@ -167,9 +167,9 @@ func (me *Client) Set(item *memcache.Item) error {
 }
 
 // Get gets the item for the given key. ErrCacheMiss is returned for a memcache cache miss. The key must be at most 250 bytes in length.
-func (me *Client) Get(key string) (*memcache.Item, error) {
+func (client *Client) Get(key string) (*memcache.Item, error) {
 	// Get all nodes that are marked healthy
-	nodes := me.Nodes.GetHealthyNodes()
+	nodes := client.Nodes.GetHealthyNodes()
 	nodeCount := len(nodes)
 
 	// Bug out early if no nodes
@@ -231,7 +231,7 @@ func (me *Client) Get(key string) (*memcache.Item, error) {
 		// Did we find an item from any node?
 		if item != nil {
 			if len(nodesToSync) > 0 {
-				me.Log.Info("Get: Synchronising %d nodes", len(nodesToSync))
+				client.Log.Info("Get: Synchronising %d nodes", len(nodesToSync))
 				// Resync by writing to missing nodes
 				for _, node := range nodesToSync {
 					node.Set(item, nil)
@@ -254,9 +254,9 @@ func (me *Client) Get(key string) (*memcache.Item, error) {
 }
 
 // Delete deletes the item with the provided key. The error ErrCacheMiss is returned if the item didn't already exist in the cache.
-func (me *Client) Delete(key string) error {
+func (client *Client) Delete(key string) error {
 	// Get all nodes that are marked healthy
-	nodes := me.Nodes.GetHealthyNodes()
+	nodes := client.Nodes.GetHealthyNodes()
 	nodeCount := len(nodes)
 
 	// Bug out early if no nodes
@@ -293,7 +293,7 @@ func (me *Client) Delete(key string) error {
 		}
 
 		// If this happened, writes to all nodes failed
-		if me.Nodes.GetHealthyNodeCount() == 0 {
+		if client.Nodes.GetHealthyNodeCount() == 0 {
 			finishChan <- ErrNoHealthyNodes
 			return
 		}
@@ -307,9 +307,9 @@ func (me *Client) Delete(key string) error {
 // Touch updates the expiry for the given key. The seconds parameter is either a Unix timestamp or,
 // if seconds is less than 1 month, the number of seconds into the future at which time the item will expire.
 // ErrCacheMiss is returned if the key is not in the cache. The key must be at most 250 bytes in length.
-func (me *Client) Touch(key string, seconds int32) error {
+func (client *Client) Touch(key string, seconds int32) error {
 	// Get all nodes that are marked healthy
-	nodes := me.Nodes.GetHealthyNodes()
+	nodes := client.Nodes.GetHealthyNodes()
 	nodeCount := len(nodes)
 
 	// Bug out early if no nodes
@@ -346,7 +346,7 @@ func (me *Client) Touch(key string, seconds int32) error {
 		}
 
 		// If this happened, writes to all nodes failed
-		if me.Nodes.GetHealthyNodeCount() == 0 {
+		if client.Nodes.GetHealthyNodeCount() == 0 {
 			finishChan <- ErrNoHealthyNodes
 			return
 		}
@@ -358,20 +358,20 @@ func (me *Client) Touch(key string, seconds int32) error {
 }
 
 // Start the Client client. This should be called before any operations are called.
-func (me *Client) Start() error {
-	if me.running != false {
+func (client *Client) Start() error {
+	if client.running != false {
 		return ErrAlreadyRunning
 	}
-	go me.runloop()
+	go client.runloop()
 	return nil
 }
 
-func (me *Client) runloop() {
-	me.Log.Info("Running")
+func (client *Client) runloop() {
+	client.Log.Info("Running")
 	timerChannel := time.After(time.Duration(time.Second))
 	lastGetNodes := time.Time{}
 	lastHealthCheck := time.Time{}
-	me.running = true
+	client.running = true
 
 	for {
 		select {
@@ -379,21 +379,21 @@ func (me *Client) runloop() {
 			now := time.Now()
 
 			if lastGetNodes.Add(GET_NODES_PERIOD).Before(now) {
-				me.GetNodes()
+				client.GetNodes()
 				lastGetNodes = time.Now()
 			}
 
 			if lastHealthCheck.Add(HEALTHCHECK_PERIOD).Before(now) {
-				me.HealthCheck()
+				client.HealthCheck()
 				lastHealthCheck = time.Now()
 			}
 
 			timerChannel = time.After(time.Duration(time.Second / 10))
 
-		case <-me.shutdownChan:
-			me.running = false
-			me.Log.Info("Stopped")
-			me.shutdownChan <- 2
+		case <-client.shutdownChan:
+			client.running = false
+			client.Log.Info("Stopped")
+			client.shutdownChan <- 2
 			return
 		}
 	}
@@ -401,40 +401,40 @@ func (me *Client) runloop() {
 }
 
 // GetNodes updates the list of nodes in the client from the configured sources.
-func (me *Client) GetNodes() {
+func (client *Client) GetNodes() {
 	incomingNodes := map[string]bool{}
 
-	for _, source := range me.Sources {
+	for _, source := range client.Sources {
 		nodes, err := source.GetNodes()
 		if err != nil {
-			me.Log.Error("GetNodes: Source Error: %s", err)
+			client.Log.Error("GetNodes: Source Error: %s", err)
 			return
 		}
 
 		// Added Nodes
 		for _, nodeAddr := range nodes {
 			incomingNodes[nodeAddr] = true
-			if !me.Nodes.Exists(nodeAddr) {
-				me.Log.Info("GetNodes: Node Added %s", nodeAddr)
-				node := NewNode(me.Log, nodeAddr, me.Timeout)
-				me.Nodes.Add(node)
+			if !client.Nodes.Exists(nodeAddr) {
+				client.Log.Info("GetNodes: Node Added %s", nodeAddr)
+				node := NewNode(client.Log, nodeAddr, client.Timeout)
+				client.Nodes.Add(node)
 				node.HealthCheck()
 			}
 		}
 	}
 
 	// Removed nodes
-	for nodeAddr := range me.Nodes.Nodes {
+	for nodeAddr := range client.Nodes.Nodes {
 		if _, found := incomingNodes[nodeAddr]; !found {
-			me.Log.Info("GetNodes: Node Removed %s", nodeAddr)
-			delete(me.Nodes.Nodes, nodeAddr)
+			client.Log.Info("GetNodes: Node Removed %s", nodeAddr)
+			delete(client.Nodes.Nodes, nodeAddr)
 		}
 	}
 }
 
 // HealthCheck performs a healthcheck on all nodes.
-func (me *Client) HealthCheck() error {
-	for _, node := range me.Nodes.Nodes {
+func (client *Client) HealthCheck() error {
+	for _, node := range client.Nodes.Nodes {
 		_, err := node.HealthCheck()
 		if err != nil {
 			return err
@@ -444,11 +444,11 @@ func (me *Client) HealthCheck() error {
 }
 
 // Stop the Client client.
-func (me *Client) Stop() error {
-	if me.running != true {
+func (client *Client) Stop() error {
+	if client.running != true {
 		return ErrAlreadyRunning
 	}
-	me.shutdownChan <- 1
-	<-me.shutdownChan
+	client.shutdownChan <- 1
+	<-client.shutdownChan
 	return nil
 }

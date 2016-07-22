@@ -23,107 +23,107 @@ type Node struct {
 
 // NewNode returns a new Node with the given Logger and endpoint (host:port)
 func NewNode(logger log.Logger, endpoint string, timeout time.Duration) *Node {
-	me := &Node{
+	node := &Node{
 		Endpoint:        endpoint,
 		Log:             log.NewScopedLogger("Node "+endpoint, logger),
 		IsHealthy:       false,
 		LastHealthCheck: time.Now().Add(-1 * HEALTHCHECK_PERIOD),
 		client:          memcache.New(endpoint),
 	}
-	me.client.Timeout = timeout
-	return me
+	node.client.Timeout = timeout
+	return node
 }
 
 // Add an item to the memcache server represented by this node and send the response to the given channel
-func (me *Node) Add(item *memcache.Item, finishChan chan (*NodeResponse)) {
+func (node *Node) Add(item *memcache.Item, finishChan chan (*NodeResponse)) {
 	go func() {
-		me.Log.Debug("ADD %s", item.Key)
-		err := me.client.Add(item)
+		node.Log.Debug("ADD %s", item.Key)
+		err := node.client.Add(item)
 		if finishChan != nil {
-			finishChan <- me.getNodeResponse(nil, err)
+			finishChan <- node.getNodeResponse(nil, err)
 		}
 	}()
 }
 
 // Set an item in the memcache server represented by this node and send the response to the given channel
-func (me *Node) Set(item *memcache.Item, finishChan chan (*NodeResponse)) {
+func (node *Node) Set(item *memcache.Item, finishChan chan (*NodeResponse)) {
 	go func() {
-		me.Log.Debug("SET %s", item.Key)
-		err := me.client.Set(item)
+		node.Log.Debug("SET %s", item.Key)
+		err := node.client.Set(item)
 		if finishChan != nil {
-			finishChan <- me.getNodeResponse(nil, err)
+			finishChan <- node.getNodeResponse(nil, err)
 		}
 	}()
 }
 
 // Get an item with the given key from the memcache server represented by this node and send the response to the given channel
-func (me *Node) Get(key string, finishChan chan (*NodeResponse)) {
+func (node *Node) Get(key string, finishChan chan (*NodeResponse)) {
 	go func() {
-		me.Log.Debug("GET %s", key)
-		item, err := me.client.Get(key)
+		node.Log.Debug("GET %s", key)
+		item, err := node.client.Get(key)
 		if finishChan != nil {
-			finishChan <- me.getNodeResponse(item, err)
+			finishChan <- node.getNodeResponse(item, err)
 		}
 	}()
 }
 
 // Delete an item with the given key from the memcache server represented by this node and send the response to the given channel
-func (me *Node) Delete(key string, finishChan chan (*NodeResponse)) {
+func (node *Node) Delete(key string, finishChan chan (*NodeResponse)) {
 	go func() {
-		me.Log.Debug("DELETE %s", key)
-		err := me.client.Delete(key)
+		node.Log.Debug("DELETE %s", key)
+		err := node.client.Delete(key)
 		if finishChan != nil {
-			finishChan <- me.getNodeResponse(nil, err)
+			finishChan <- node.getNodeResponse(nil, err)
 		}
 	}()
 }
 
 // Touch an item with the given key, updating its expiry.
-func (me *Node) Touch(key string, seconds int32, finishChan chan (*NodeResponse)) {
+func (node *Node) Touch(key string, seconds int32, finishChan chan (*NodeResponse)) {
 	go func() {
-		me.Log.Debug("TOUCH %s", key)
-		err := me.client.Touch(key, seconds)
+		node.Log.Debug("TOUCH %s", key)
+		err := node.client.Touch(key, seconds)
 		if finishChan != nil {
-			finishChan <- me.getNodeResponse(nil, err)
+			finishChan <- node.getNodeResponse(nil, err)
 		}
 	}()
 }
 
 // HealthCheck performs a healthcheck on the memcache server represented by this node, update IsHealthy, and return it
-func (me *Node) HealthCheck() (bool, error) {
+func (node *Node) HealthCheck() (bool, error) {
 	// Read a Random key, expect ErrCacheMiss
 	x := make([]byte, 32)
 	_, err := rand.Read(x)
 	if err != nil {
 		return false, err
 	}
-	_, err = me.client.Get(fmt.Sprintf("%02x", x))
+	_, err = node.client.Get(fmt.Sprintf("%02x", x))
 	if err != nil {
 		return false, err
 	}
-	me.getNodeResponse(nil, err)
-	return me.IsHealthy, nil
+	node.getNodeResponse(nil, err)
+	return node.IsHealthy, nil
 }
 
-func (me *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse {
-	me.LastHealthCheck = time.Now()
+func (node *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse {
+	node.LastHealthCheck = time.Now()
 	if err != nil && err != memcache.ErrCacheMiss && err != memcache.ErrCASConflict && err != memcache.ErrNotStored && err != memcache.ErrNoStats && err != memcache.ErrMalformedKey {
-		me.markUnhealthy(err)
+		node.markUnhealthy(err)
 	} else {
-		me.markHealthy(err)
+		node.markHealthy(err)
 	}
-	return NewNodeResponse(me, item, err)
+	return NewNodeResponse(node, item, err)
 }
 
-func (me *Node) markHealthy(err error) {
-	if !me.IsHealthy {
-		me.Log.Info("Healthy")
+func (node *Node) markHealthy(err error) {
+	if !node.IsHealthy {
+		node.Log.Info("Healthy")
 	}
-	me.IsHealthy = true
+	node.IsHealthy = true
 }
-func (me *Node) markUnhealthy(err error) {
-	if me.IsHealthy {
-		me.Log.Warn("Unhealthy (%s)", err)
+func (node *Node) markUnhealthy(err error) {
+	if node.IsHealthy {
+		node.Log.Warn("Unhealthy (%s)", err)
 	}
-	me.IsHealthy = false
+	node.IsHealthy = false
 }

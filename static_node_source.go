@@ -5,11 +5,11 @@ type StaticNodeSource []string
 
 // NewStaticNodeSource returns a new StaticNodeSource with the given endpoints
 func NewStaticNodeSource(nodes ...string) *StaticNodeSource {
-	x := StaticNodeSource(nodes)
-	return &x
+	staticNodeSource := StaticNodeSource(nodes)
+	return &staticNodeSource
 }
 
 // GetNodes implements NodeSource, return a slice of configured endpoints
-func (me *StaticNodeSource) GetNodes() ([]string, error) {
-	return *me, nil
+func (staticNodeSource *StaticNodeSource) GetNodes() ([]string, error) {
+	return *staticNodeSource, nil
 }
