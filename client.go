@@ -421,7 +421,9 @@ func (client *Client) GetNodes() {
 				client.Log.Info("GetNodes: Node Added %s", nodeAddr)
 				node := NewNode(client.Log, nodeAddr, client.Timeout)
 				client.Nodes.Add(node)
-				node.HealthCheck()
+				ok, err := node.HealthCheck()
+				if err != nil { client.Log.Warn("GetNodes: Initial HealthCheck for Node %s returned an error: %s", nodeAddr, err) }
+				if !ok { client.Log.Warn("GetNodes: Initial HealthCheck failed for Node %s", nodeAddr) }
 			}
 		}
 	}
