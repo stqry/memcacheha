@@ -37,7 +37,11 @@ func NewNode(logger log.Logger, endpoint string, timeout time.Duration) *Node {
 // Add an item to the memcache server represented by this node and send the response to the given channel
 func (node *Node) Add(item *Item, finishChan chan (*NodeResponse)) {
 	go func() {
-		node.Log.Debug("ADD %s", item.Key)
+		if item.Expiration!=nil {
+			node.Log.Debug("ADD %s Expire %s", item.Key, *item.Expiration)
+		} else {
+			node.Log.Debug("ADD %s", item.Key)
+		}
 		err := node.client.Add(item.AsMemcacheItem())
 		if finishChan != nil {
 			finishChan <- node.getNodeResponse(nil, err)
@@ -48,7 +52,11 @@ func (node *Node) Add(item *Item, finishChan chan (*NodeResponse)) {
 // Set an item in the memcache server represented by this node and send the response to the given channel
 func (node *Node) Set(item *Item, finishChan chan (*NodeResponse)) {
 	go func() {
-		node.Log.Debug("SET %s", item.Key)
+		if item.Expiration!=nil {
+			node.Log.Debug("SET %s Expire %s", item.Key, *item.Expiration)
+		} else {
+			node.Log.Debug("SET %s", item.Key)
+		}
 		err := node.client.Set(item.AsMemcacheItem())
 		if finishChan != nil {
 			finishChan <- node.getNodeResponse(nil, err)
