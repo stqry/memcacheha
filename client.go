@@ -43,7 +43,7 @@ func New(logger log.Logger, sources ...NodeSource) *Client {
 }
 
 // Add writes the given item, if no value already exists for its key. ErrNotStored is returned if that condition is not met.
-func (client *Client) Add(item *memcache.Item) error {
+func (client *Client) Add(item *Item) error {
 	// Get all nodes that are marked healthy
 	nodes := client.Nodes.GetHealthyNodes()
 	nodeCount := len(nodes)
@@ -95,6 +95,11 @@ func (client *Client) Add(item *memcache.Item) error {
 				item, err := client.Get(item.Key)
 				if err != nil {
 					// Write to all sync nodes unconditionally
+					if item.Expiration != nil {
+						client.Log.Info("Add: Synchronising %d nodes with %s expiry", len(nodesToSync), *item.Expiration)
+					} else {
+						client.Log.Info("Add: Synchronising %d nodes", len(nodesToSync))
+					}
 					for _, node := range nodesToSync {
 						node.Set(item, nil)
 					}
@@ -120,7 +125,7 @@ func (client *Client) Add(item *memcache.Item) error {
 }
 
 // Set writes the given item, unconditionally.
-func (client *Client) Set(item *memcache.Item) error {
+func (client *Client) Set(item *Item) error {
 	// Get all nodes that are marked healthy
 	nodes := client.Nodes.GetHealthyNodes()
 	nodeCount := len(nodes)
@@ -167,7 +172,7 @@ func (client *Client) Set(item *memcache.Item) error {
 }
 
 // Get gets the item for the given key. ErrCacheMiss is returned for a memcache cache miss. The key must be at most 250 bytes in length.
-func (client *Client) Get(key string) (*memcache.Item, error) {
+func (client *Client) Get(key string) (*Item, error) {
 	// Get all nodes that are marked healthy
 	nodes := client.Nodes.GetHealthyNodes()
 	nodeCount := len(nodes)
@@ -215,7 +220,7 @@ func (client *Client) Get(key string) (*memcache.Item, error) {
 		}()
 
 		// Placeholder for result
-		var item *memcache.Item
+		var item *Item
 
 		// Get response from all nodes
 		for ; nodeCount > 0; nodeCount-- {
@@ -231,7 +236,11 @@ func (client *Client) Get(key string) (*memcache.Item, error) {
 		// Did we find an item from any node?
 		if item != nil {
 			if len(nodesToSync) > 0 {
-				client.Log.Info("Get: Synchronising %d nodes", len(nodesToSync))
+				if item.Expiration != nil {
+					client.Log.Info("Get: Synchronising %d nodes with %s expiry", len(nodesToSync), *item.Expiration)
+				} else {
+					client.Log.Info("Get: Synchronising %d nodes", len(nodesToSync))
+				}
 				// Resync by writing to missing nodes
 				for _, node := range nodesToSync {
 					node.Set(item, nil)
@@ -363,7 +372,25 @@ func (client *Client) Start() error {
 		return ErrAlreadyRunning
 	}
 	go client.runloop()
+
 	return nil
+}
+
+// WaitForNodes waits for at least one available node, timing out on the deadline with ErrNoHealthyNodes
+func (client *Client) WaitForNodes(deadline time.Time) error {
+	startedChan := make(chan (error))
+	go func() {
+		for !time.Now().After(deadline) {
+			if client.Nodes.GetHealthyNodeCount() > 0 {
+				startedChan <- nil
+				return
+			}
+			time.Sleep(time.Second / 10)
+		}
+		startedChan <- ErrNoHealthyNodes
+	}()
+
+	return <-startedChan
 }
 
 func (client *Client) runloop() {

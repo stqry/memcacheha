@@ -35,10 +35,10 @@ func NewNode(logger log.Logger, endpoint string, timeout time.Duration) *Node {
 }
 
 // Add an item to the memcache server represented by this node and send the response to the given channel
-func (node *Node) Add(item *memcache.Item, finishChan chan (*NodeResponse)) {
+func (node *Node) Add(item *Item, finishChan chan (*NodeResponse)) {
 	go func() {
 		node.Log.Debug("ADD %s", item.Key)
-		err := node.client.Add(item)
+		err := node.client.Add(item.AsMemcacheItem())
 		if finishChan != nil {
 			finishChan <- node.getNodeResponse(nil, err)
 		}
@@ -46,10 +46,10 @@ func (node *Node) Add(item *memcache.Item, finishChan chan (*NodeResponse)) {
 }
 
 // Set an item in the memcache server represented by this node and send the response to the given channel
-func (node *Node) Set(item *memcache.Item, finishChan chan (*NodeResponse)) {
+func (node *Node) Set(item *Item, finishChan chan (*NodeResponse)) {
 	go func() {
 		node.Log.Debug("SET %s", item.Key)
-		err := node.client.Set(item)
+		err := node.client.Set(item.AsMemcacheItem())
 		if finishChan != nil {
 			finishChan <- node.getNodeResponse(nil, err)
 		}
@@ -106,16 +106,20 @@ func (node *Node) HealthCheck() (bool, error) {
 }
 
 func (node *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse {
+	var haitem *Item
 	node.LastHealthCheck = time.Now()
 	if err != nil && err != memcache.ErrCacheMiss && err != memcache.ErrCASConflict && err != memcache.ErrNotStored && err != memcache.ErrNoStats && err != memcache.ErrMalformedKey {
 		node.markUnhealthy(err)
 	} else {
-		node.markHealthy(err)
+		node.markHealthy()
+		if item != nil {
+			haitem, err = NewItemFromMemcacheItem(item)
+		}
 	}
-	return NewNodeResponse(node, item, err)
+	return NewNodeResponse(node, haitem, err)
 }
 
-func (node *Node) markHealthy(err error) {
+func (node *Node) markHealthy() {
 	if !node.IsHealthy {
 		node.Log.Info("Healthy")
 	}
