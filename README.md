@@ -22,6 +22,13 @@ Writes are mirrored to all nodes concurrently, and consistency is achieved by no
 have acknowledged or timed out. Reads are performed from at least n/2 nodes where n is the total number of currently
 healthy nodes - if at least one node returns data, items are (transparently) written to nodes with missing data. 
 
+## Caveat
+
+MemcacheHA is incompatible with standard memcache clients (including [gomemcache](https://github.com/bradfitz/gomemcache)) working with the same cluster.
+This is because memcache does not return the expiry time of a key along with the data. To work around the problem, memcache transparently prepends
+every key value with 8 bytes: a protocol identitifer ( 0xfd, 0x37, 0xd3, 0x1b ) and a big-endian 32 bit value representing the absolute UNIX time of
+expiry. Standard memcache clients reading keys set by memcacheha will return this extra data inline.
+
 ## Autodiscovery
 
 Nodes are discovered through [NodeSource](./node_source.go)s - currently, two are available:
