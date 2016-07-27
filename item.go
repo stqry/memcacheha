@@ -70,6 +70,9 @@ func (item *Item) AsMemcacheItem() *memcache.Item {
 		binTime[1] = byte((mcExpiry >> 16) & 0xFF)
 		binTime[2] = byte((mcExpiry >> 8) & 0xFF)
 		binTime[3] = byte(mcExpiry & 0xFF)
+
+		// Change to relative for memcached
+		mcExpiry = mcExpiry - int32(time.Now().Unix())
 	}
 
 	var value []byte
