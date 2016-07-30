@@ -2,7 +2,7 @@
 package memcacheha
 
 import (
-	"github.com/apitalent/memcacheha/log"
+	"github.com/apitalent/logger"
 	"github.com/bradfitz/gomemcache/memcache"
 	"time"
 )
@@ -21,7 +21,7 @@ var (
 type Client struct {
 	Nodes   *NodeList
 	Sources []NodeSource
-	Log     log.Logger
+	Log     logger.Logger
 
 	Timeout time.Duration
 
@@ -30,7 +30,7 @@ type Client struct {
 }
 
 // New returns a new Client with the specified logger and NodeSources
-func New(logger log.Logger, sources ...NodeSource) *Client {
+func New(logger logger.Logger, sources ...NodeSource) *Client {
 	i := &Client{
 		Nodes:        NewNodeList(),
 		Sources:      sources,

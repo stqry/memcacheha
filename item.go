@@ -75,7 +75,9 @@ func (item *Item) AsMemcacheItem() *memcache.Item {
 		mcExpiry = mcExpiry - int32(time.Now().Unix())
 
 		// Catch negative offset (expire now)
-		if mcExpiry < 1 { mcExpiry = 1 }
+		if mcExpiry < 1 {
+			mcExpiry = 1
+		}
 	}
 
 	var value []byte

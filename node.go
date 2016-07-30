@@ -1,7 +1,7 @@
 package memcacheha
 
 import (
-	"github.com/apitalent/memcacheha/log"
+	"github.com/apitalent/logger"
 
 	"github.com/bradfitz/gomemcache/memcache"
 
@@ -13,7 +13,7 @@ import (
 // Node represents a single Memcache server.
 type Node struct {
 	Endpoint string
-	Log      log.Logger
+	Log      logger.Logger
 
 	IsHealthy       bool
 	LastHealthCheck time.Time
@@ -22,10 +22,10 @@ type Node struct {
 }
 
 // NewNode returns a new Node with the given Logger and endpoint (host:port)
-func NewNode(logger log.Logger, endpoint string, timeout time.Duration) *Node {
+func NewNode(log logger.Logger, endpoint string, timeout time.Duration) *Node {
 	node := &Node{
 		Endpoint:        endpoint,
-		Log:             log.NewScopedLogger("Node "+endpoint, logger),
+		Log:             logger.NewScopedLogger("Node "+endpoint, log),
 		IsHealthy:       false,
 		LastHealthCheck: time.Now().Add(-1 * HEALTHCHECK_PERIOD),
 		client:          memcache.New(endpoint),
@@ -37,7 +37,7 @@ func NewNode(logger log.Logger, endpoint string, timeout time.Duration) *Node {
 // Add an item to the memcache server represented by this node and send the response to the given channel
 func (node *Node) Add(item *Item, finishChan chan (*NodeResponse)) {
 	go func() {
-		if item.Expiration!=nil {
+		if item.Expiration != nil {
 			node.Log.Debug("ADD %s Expire %s", item.Key, *item.Expiration)
 		} else {
 			node.Log.Debug("ADD %s", item.Key)
@@ -52,7 +52,7 @@ func (node *Node) Add(item *Item, finishChan chan (*NodeResponse)) {
 // Set an item in the memcache server represented by this node and send the response to the given channel
 func (node *Node) Set(item *Item, finishChan chan (*NodeResponse)) {
 	go func() {
-		if item.Expiration!=nil {
+		if item.Expiration != nil {
 			node.Log.Debug("SET %s Expire %s", item.Key, *item.Expiration)
 		} else {
 			node.Log.Debug("SET %s", item.Key)
