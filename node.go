@@ -44,7 +44,7 @@ func (node *Node) Add(item *Item, finishChan chan (*NodeResponse)) {
 		}
 		err := node.client.Add(item.AsMemcacheItem())
 		if finishChan != nil {
-			finishChan <- node.getNodeResponse(nil, err)
+			finishChan <- node.getNodeResponse(nil, 0, err)
 		}
 	}()
 }
@@ -59,7 +59,7 @@ func (node *Node) Set(item *Item, finishChan chan (*NodeResponse)) {
 		}
 		err := node.client.Set(item.AsMemcacheItem())
 		if finishChan != nil {
-			finishChan <- node.getNodeResponse(nil, err)
+			finishChan <- node.getNodeResponse(nil, 0, err)
 		}
 	}()
 }
@@ -70,7 +70,7 @@ func (node *Node) Get(key string, finishChan chan (*NodeResponse)) {
 		node.Log.Debug("GET %s", key)
 		item, err := node.client.Get(key)
 		if finishChan != nil {
-			finishChan <- node.getNodeResponse(item, err)
+			finishChan <- node.getNodeResponse(item, 0, err)
 		}
 	}()
 }
@@ -81,7 +81,29 @@ func (node *Node) Delete(key string, finishChan chan (*NodeResponse)) {
 		node.Log.Debug("DELETE %s", key)
 		err := node.client.Delete(key)
 		if finishChan != nil {
-			finishChan <- node.getNodeResponse(nil, err)
+			finishChan <- node.getNodeResponse(nil, 0, err)
+		}
+	}()
+}
+
+// Increment an existing key by the given delta
+func (node *Node) Increment(key string, delta uint64, finishChan chan (*NodeResponse)) {
+	go func() {
+		node.Log.Debug("INCREMENT %s", key)
+		newValue, err := node.client.Increment(key, delta)
+		if finishChan != nil {
+			finishChan <- node.getNodeResponse(nil, newValue, err)
+		}
+	}()
+}
+
+// Decrement an existing key by the given delta
+func (node *Node) Decrement(key string, delta uint64, finishChan chan (*NodeResponse)) {
+	go func() {
+		node.Log.Debug("DECREMENT %s", key)
+		newValue, err := node.client.Decrement(key, delta)
+		if finishChan != nil {
+			finishChan <- node.getNodeResponse(nil, newValue, err)
 		}
 	}()
 }
@@ -92,7 +114,7 @@ func (node *Node) Touch(key string, seconds int32, finishChan chan (*NodeRespons
 		node.Log.Debug("TOUCH %s", key)
 		err := node.client.Touch(key, seconds)
 		if finishChan != nil {
-			finishChan <- node.getNodeResponse(nil, err)
+			finishChan <- node.getNodeResponse(nil, 0, err)
 		}
 	}()
 }
@@ -109,11 +131,11 @@ func (node *Node) HealthCheck() (bool, error) {
 	if err != nil && err != memcache.ErrCacheMiss {
 		return false, err
 	}
-	node.getNodeResponse(nil, err)
+	node.getNodeResponse(nil, 0, err)
 	return node.IsHealthy, nil
 }
 
-func (node *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse {
+func (node *Node) getNodeResponse(item *memcache.Item, newValue uint64, err error) *NodeResponse {
 	var haitem *Item
 	node.LastHealthCheck = time.Now()
 	if err != nil && err != memcache.ErrCacheMiss && err != memcache.ErrCASConflict && err != memcache.ErrNotStored && err != memcache.ErrNoStats && err != memcache.ErrMalformedKey {
@@ -124,7 +146,7 @@ func (node *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse 
 			haitem, err = NewItemFromMemcacheItem(item)
 		}
 	}
-	return NewNodeResponse(node, haitem, err)
+	return NewNodeResponse(node, haitem, err, newValue)
 }
 
 func (node *Node) markHealthy() {

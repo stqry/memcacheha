@@ -215,7 +215,7 @@ func (client *Client) Get(key string) (*Item, error) {
 		defer func() {
 			r := recover()
 			if r != nil {
-				finishChan <- NewNodeResponse(nil, nil, ErrUnknown)
+				finishChan <- NewNodeResponse(nil, nil, ErrUnknown, 0)
 			}
 		}()
 
@@ -248,18 +248,119 @@ func (client *Client) Get(key string) (*Item, error) {
 			}
 
 			// Return Item
-			finishChan <- NewNodeResponse(nil, item, nil)
+			finishChan <- NewNodeResponse(nil, item, nil, 0)
 			return
 		}
 
 		// Not found
-		finishChan <- NewNodeResponse(nil, nil, memcache.ErrCacheMiss)
+		finishChan <- NewNodeResponse(nil, nil, memcache.ErrCacheMiss, 0)
 	}()
 
 	// Wait for aggregate response
 	res := <-finishChan
 
 	return res.Item, res.Error
+}
+
+// Increment atomically increments key by delta. The return value is the new 
+// value after being incremented or an error. If the value didn't exist in memcached 
+// the error is ErrCacheMiss. The value in memcached must be an decimal number, or an 
+// error will be returned. On 64-bit overflow, the new value wraps around.
+func (client *Client) Increment(key string, delta uint64) (newValue uint64, err error) {
+	// Get all nodes that are marked healthy
+	nodes := client.Nodes.GetHealthyNodes()
+	nodeCount := len(nodes)
+
+	// Bug out early if no nodes
+	if nodeCount == 0 {
+		return 0, ErrNoHealthyNodes
+	}
+
+	finishChan := make(chan (*NodeResponse))
+	statusChan := make(chan (*NodeResponse), nodeCount)
+
+	// Concurrently increment to all nodes
+	for _, node := range nodes {
+		node.Increment(key, delta, statusChan)
+	}
+
+	// These are the nodes to sync
+	var nodesToSync []*Node
+
+	// Handle responses
+	go func() {
+		// Panic handler
+		defer func() {
+			r := recover()
+			if r != nil {
+				finishChan <- NewNodeResponse(nil, nil, ErrUnknown, 0)
+			}
+		}()
+
+		// Placeholder for result
+		var maxValue *uint64
+		var maxNode *Node
+		newValues := map[*Node]uint64{}
+
+		// Get response from all nodes
+		for ; nodeCount > 0; nodeCount-- {
+			response := <-statusChan
+			if response.Error == memcache.ErrCacheMiss {
+				nodesToSync = append(nodesToSync, response.Node)
+			}
+			if response.Error == nil {
+				// Get highest 
+				if maxValue == nil || response.NewValue > *maxValue {
+					maxNode = response.Node
+					newValues[response.Node] = response.NewValue
+					x := response.NewValue
+					maxValue = &x
+				}				
+			}
+		}
+
+		// If maxValue was never set, they key doesn't exist on any healthy servers
+		if maxValue == nil {
+			finishChan <- NewNodeResponse(nil, nil, memcache.ErrCacheMiss, 0)
+			return
+		}
+
+		// Add nodes with incorrect (low) values to sync list
+		for node, val := range newValues {
+			if val < *maxValue {
+				nodesToSync = append(nodesToSync, node)
+			}
+		}
+
+		// Did we find an item from any node?
+		if len(nodesToSync) > 0 {
+			// Re-Read Item for highest node
+			maxNode.Get(key, statusChan)
+			response := <- statusChan
+			if response.Error != nil {
+				client.Log.Error("Increment: Error during sync, cannot read from lead node")
+				return
+			} 
+			if response.Item.Expiration != nil {
+				client.Log.Info("Increment: Synchronising %d nodes with %s expiry", len(nodesToSync), *response.Item.Expiration)
+			} else {
+				client.Log.Info("Increment: Synchronising %d nodes", len(nodesToSync))
+			}
+			// Resync by writing to missing nodes
+			for _, node := range nodesToSync {
+				node.Set(response.Item, nil)
+			}
+		}
+
+		// Return New Value
+		finishChan <- NewNodeResponse(nil, nil, nil, *maxValue)
+		return
+	}()
+
+	// Wait for aggregate response
+	res := <-finishChan
+
+	return res.NewValue, res.Error
 }
 
 // Delete deletes the item with the provided key. The error ErrCacheMiss is returned if the item didn't already exist in the cache.
