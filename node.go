@@ -128,9 +128,6 @@ func (node *Node) HealthCheck() (bool, error) {
 		return false, err
 	}
 	_, err = node.client.Get(fmt.Sprintf("%02x", x))
-	if err != nil && err != memcache.ErrCacheMiss {
-		return false, err
-	}
 	node.getNodeResponse(nil, 0, err)
 	return node.IsHealthy, nil
 }
@@ -138,7 +135,13 @@ func (node *Node) HealthCheck() (bool, error) {
 func (node *Node) getNodeResponse(item *memcache.Item, newValue uint64, err error) *NodeResponse {
 	var haitem *Item
 	node.LastHealthCheck = time.Now()
-	if err != nil && err != memcache.ErrCacheMiss && err != memcache.ErrCASConflict && err != memcache.ErrNotStored && err != memcache.ErrNoStats && err != memcache.ErrMalformedKey {
+	if err != nil && 
+		err != memcache.ErrCacheMiss && 
+		err != memcache.ErrCASConflict && 
+		err != memcache.ErrNotStored && 
+		err != memcache.ErrNoStats && 
+		err != memcache.ErrMalformedKey &&
+		err.Error() != "memcache: client error: cannot increment or decrement non-numeric value" {
 		node.markUnhealthy(err)
 	} else {
 		node.markHealthy()

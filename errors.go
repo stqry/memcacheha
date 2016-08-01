@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	// ErrNotRunning is an error meaning Stop has been called on a client that is not running
-	ErrNotRunning = errors.New("memcacheha: not running")
+  // ErrNotRunning is an error meaning Stop has been called on a client that is not running
+  ErrNotRunning = errors.New("memcacheha: not running")
 
 	// ErrAlreadyRunning is an error meaning Start has been called on a client that is already running
 	ErrAlreadyRunning = errors.New("memcacheha: already running")

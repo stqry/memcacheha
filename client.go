@@ -171,7 +171,8 @@ func (client *Client) Set(item *Item) error {
 	return <-finishChan
 }
 
-// Get gets the item for the given key. ErrCacheMiss is returned for a memcache cache miss. The key must be at most 250 bytes in length.
+// Get gets the item for the given key. ErrCacheMiss is returned for a memcache cache miss. 
+// The key must be at most 250 bytes in length.
 func (client *Client) Get(key string) (*Item, error) {
 	// Get all nodes that are marked healthy
 	nodes := client.Nodes.GetHealthyNodes()
@@ -302,6 +303,8 @@ func (client *Client) Increment(key string, delta uint64) (newValue uint64, err 
 		var maxNode *Node
 		newValues := map[*Node]uint64{}
 
+		// TODO: Should return 'memcache: client error: cannot increment or decrement non-numeric value' when appropriate
+
 		// Get response from all nodes
 		for ; nodeCount > 0; nodeCount-- {
 			response := <-statusChan
@@ -319,8 +322,8 @@ func (client *Client) Increment(key string, delta uint64) (newValue uint64, err 
 			}
 		}
 
-		// If maxValue was never set, they key doesn't exist on any healthy servers
-		if maxValue == nil {
+		// If maxNode was never set, they key doesn't exist on any healthy servers
+		if maxNode == nil {
 			finishChan <- NewNodeResponse(nil, nil, memcache.ErrCacheMiss, 0)
 			return
 		}
