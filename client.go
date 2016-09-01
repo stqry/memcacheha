@@ -171,7 +171,8 @@ func (client *Client) Set(item *Item) error {
 	return <-finishChan
 }
 
-// Get gets the item for the given key. ErrCacheMiss is returned for a memcache cache miss. The key must be at most 250 bytes in length.
+// Get gets the item for the given key. ErrCacheMiss is returned for a memcache cache miss.
+// The key must be at most 250 bytes in length.
 func (client *Client) Get(key string) (*Item, error) {
 	// Get all nodes that are marked healthy
 	nodes := client.Nodes.GetHealthyNodes()

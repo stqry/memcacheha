@@ -100,6 +100,10 @@ Multiple sources can be used, passed to `New` in [Client](./client.go). All sour
 	* The node fails to respond to any operation within a timeout (100ms)
 	* The node responds with a Server Error
 
+## Caveat
+
+Because memcacheha relies on client-side synchronisation, it is important to ensure that the local machine time is accurate. Use of [ntp](https://en.wikipedia.org/wiki/Network_Time_Protocol) or similar is recommended.
+
 ## Contributing
 
 Contributions are welcome. Please follow the [code of conduct](./code_of_conduct.md).

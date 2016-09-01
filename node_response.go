@@ -10,8 +10,8 @@ type NodeResponse struct {
 // NewNodeResponse returns a new NodeResponse with the specified Node, Item and Error
 func NewNodeResponse(node *Node, item *Item, err error) *NodeResponse {
 	return &NodeResponse{
-		Node:  node,
-		Item:  item,
-		Error: err,
+		Node:     node,
+		Item:     item,
+		Error:    err,
 	}
 }
