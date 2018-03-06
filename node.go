@@ -7,6 +7,7 @@ import (
 
 	"crypto/rand"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -19,6 +20,7 @@ type Node struct {
 	LastHealthCheck time.Time
 
 	client *memcache.Client
+	lock   sync.RWMutex
 }
 
 // NewNode returns a new Node with the given Logger and endpoint (host:port)
@@ -29,6 +31,7 @@ func NewNode(log logger.Logger, endpoint string, timeout time.Duration) *Node {
 		IsHealthy:       false,
 		LastHealthCheck: time.Now().Add(-1 * HEALTHCHECK_PERIOD),
 		client:          memcache.New(endpoint),
+		lock:            sync.RWMutex{},
 	}
 	node.client.Timeout = timeout
 	return node
@@ -122,12 +125,16 @@ func (node *Node) HealthCheck() (bool, error) {
 		return false, err
 	}
 	node.getNodeResponse(nil, err)
+	node.lock.RLock()
+	defer node.lock.RUnlock()
 	return node.IsHealthy, nil
 }
 
 func (node *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse {
 	var haitem *Item
+	node.lock.Lock()
 	node.LastHealthCheck = time.Now()
+	node.lock.Unlock()
 	if err != nil &&
 		err != memcache.ErrCacheMiss &&
 		err != memcache.ErrCASConflict &&
@@ -145,14 +152,18 @@ func (node *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse 
 }
 
 func (node *Node) markHealthy() {
+	node.lock.Lock()
 	if !node.IsHealthy {
 		node.Log.Info("Healthy")
 	}
 	node.IsHealthy = true
+	node.lock.Unlock()
 }
 func (node *Node) markUnhealthy(err error) {
+	node.lock.Lock()
 	if node.IsHealthy {
 		node.Log.Warn("Unhealthy (%s)", err)
 	}
 	node.IsHealthy = false
+	node.lock.Unlock()
 }
