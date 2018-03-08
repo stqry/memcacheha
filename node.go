@@ -19,8 +19,8 @@ type Node struct {
 	IsHealthy       bool
 	LastHealthCheck time.Time
 
+	lock   sync.RWMutex // on client
 	client *memcache.Client
-	lock   sync.RWMutex
 }
 
 // NewNode returns a new Node with the given Logger and endpoint (host:port)

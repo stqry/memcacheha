@@ -4,8 +4,8 @@ import "sync"
 
 // NodeList represents a list of memcache servers configured/discovered by this client.
 type NodeList struct {
+	lock  sync.RWMutex // on Nodes
 	Nodes map[string]*Node
-	lock  sync.RWMutex
 }
 
 // NewNodeList returns a new, empty NodeList
