@@ -2,9 +2,10 @@
 package memcacheha
 
 import (
+	"time"
+
 	"github.com/apitalent/logger"
 	"github.com/bradfitz/gomemcache/memcache"
-	"time"
 )
 
 // VERSION is the version of this memcacheha client
@@ -448,7 +449,6 @@ func (client *Client) GetNodes() {
 			if !client.Nodes.Exists(nodeAddr) {
 				client.Log.Info("GetNodes: Node Added %s", nodeAddr)
 				node := NewNode(client.Log, nodeAddr, client.Timeout)
-				client.Nodes.Add(node)
 				ok, err := node.HealthCheck()
 				if err != nil {
 					client.Log.Warn("GetNodes: Initial HealthCheck for Node %s returned an error: %s", nodeAddr, err)
@@ -456,28 +456,21 @@ func (client *Client) GetNodes() {
 				if !ok {
 					client.Log.Warn("GetNodes: Initial HealthCheck failed for Node %s", nodeAddr)
 				}
+				client.Nodes.Add(node)
 			}
 		}
 	}
 
 	// Removed nodes
-	for nodeAddr := range client.Nodes.Nodes {
-		if _, found := incomingNodes[nodeAddr]; !found {
-			client.Log.Info("GetNodes: Node Removed %s", nodeAddr)
-			delete(client.Nodes.Nodes, nodeAddr)
-		}
+	removedAddrs := client.Nodes.RemoveNodesExcept(incomingNodes)
+	for _, nodeAddr := range removedAddrs {
+		client.Log.Info("GetNodes: Node Removed %s", nodeAddr)
 	}
 }
 
 // HealthCheck performs a healthcheck on all nodes.
 func (client *Client) HealthCheck() error {
-	for _, node := range client.Nodes.Nodes {
-		_, err := node.HealthCheck()
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return client.Nodes.HealthCheck()
 }
 
 // Stop the Client client.

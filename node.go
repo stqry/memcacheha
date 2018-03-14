@@ -1,6 +1,8 @@
 package memcacheha
 
 import (
+	"sync/atomic"
+
 	"github.com/apitalent/logger"
 
 	"github.com/bradfitz/gomemcache/memcache"
@@ -15,20 +17,18 @@ type Node struct {
 	Endpoint string
 	Log      logger.Logger
 
-	IsHealthy       bool
-	LastHealthCheck time.Time
+	isHealthy uint64 // atomic boolean
 
-	client *memcache.Client
+	client *memcache.Client // safe for concurrent use
 }
 
 // NewNode returns a new Node with the given Logger and endpoint (host:port)
 func NewNode(log logger.Logger, endpoint string, timeout time.Duration) *Node {
 	node := &Node{
-		Endpoint:        endpoint,
-		Log:             logger.NewScopedLogger("Node "+endpoint, log),
-		IsHealthy:       false,
-		LastHealthCheck: time.Now().Add(-1 * HEALTHCHECK_PERIOD),
-		client:          memcache.New(endpoint),
+		Endpoint:  endpoint,
+		Log:       logger.NewScopedLogger("Node "+endpoint, log),
+		isHealthy: 0, // false
+		client:    memcache.New(endpoint),
 	}
 	node.client.Timeout = timeout
 	return node
@@ -109,6 +109,10 @@ func (node *Node) Touch(key string, seconds int32, finishChan chan (*NodeRespons
 	}()
 }
 
+func (node *Node) IsHealthy() bool {
+	return atomic.LoadUint64(&node.isHealthy) > 0
+}
+
 // HealthCheck performs a healthcheck on the memcache server represented by this node, update IsHealthy, and return it
 func (node *Node) HealthCheck() (bool, error) {
 	// Read a Random key, expect ErrCacheMiss
@@ -122,12 +126,11 @@ func (node *Node) HealthCheck() (bool, error) {
 		return false, err
 	}
 	node.getNodeResponse(nil, err)
-	return node.IsHealthy, nil
+	return node.IsHealthy(), nil
 }
 
 func (node *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse {
 	var haitem *Item
-	node.LastHealthCheck = time.Now()
 	if err != nil &&
 		err != memcache.ErrCacheMiss &&
 		err != memcache.ErrCASConflict &&
@@ -145,14 +148,14 @@ func (node *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse 
 }
 
 func (node *Node) markHealthy() {
-	if !node.IsHealthy {
+	if !node.IsHealthy() {
 		node.Log.Info("Healthy")
 	}
-	node.IsHealthy = true
+	atomic.StoreUint64(&node.isHealthy, 1)
 }
 func (node *Node) markUnhealthy(err error) {
-	if node.IsHealthy {
+	if node.IsHealthy() {
 		node.Log.Warn("Unhealthy (%s)", err)
 	}
-	node.IsHealthy = false
+	atomic.StoreUint64(&node.isHealthy, 0)
 }
