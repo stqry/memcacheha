@@ -462,7 +462,7 @@ func (client *Client) GetNodes() {
 	}
 
 	// Removed nodes
-	removedAddrs := client.Nodes.SetNodes(incomingNodes)
+	removedAddrs := client.Nodes.RemoveNodesExcept(incomingNodes)
 	for _, nodeAddr := range removedAddrs {
 		client.Log.Info("GetNodes: Node Removed %s", nodeAddr)
 	}

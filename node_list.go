@@ -57,7 +57,7 @@ func (nodeList *NodeList) Add(node *Node) {
 	nodeList.lock.Unlock()
 }
 
-func (nodeList *NodeList) SetNodes(nodeAddrs map[string]bool) []string {
+func (nodeList *NodeList) RemoveNodesExcept(nodeAddrs map[string]bool) []string {
 	removedAddrs := []string{}
 	nodeList.lock.Lock()
 	for nodeAddr := range nodeList.nodes {
