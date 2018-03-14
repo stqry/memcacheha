@@ -16,22 +16,20 @@ type Node struct {
 	Endpoint string
 	Log      logger.Logger
 
-	IsHealthy       bool
-	LastHealthCheck time.Time
+	lock      sync.RWMutex // on isHealthy
+	isHealthy bool
 
-	lock   sync.RWMutex // on client
-	client *memcache.Client
+	client *memcache.Client // safe for concurrent use
 }
 
 // NewNode returns a new Node with the given Logger and endpoint (host:port)
 func NewNode(log logger.Logger, endpoint string, timeout time.Duration) *Node {
 	node := &Node{
-		Endpoint:        endpoint,
-		Log:             logger.NewScopedLogger("Node "+endpoint, log),
-		IsHealthy:       false,
-		LastHealthCheck: time.Now().Add(-1 * HEALTHCHECK_PERIOD),
-		client:          memcache.New(endpoint),
-		lock:            sync.RWMutex{},
+		Endpoint:  endpoint,
+		Log:       logger.NewScopedLogger("Node "+endpoint, log),
+		lock:      sync.RWMutex{},
+		isHealthy: false,
+		client:    memcache.New(endpoint),
 	}
 	node.client.Timeout = timeout
 	return node
@@ -112,6 +110,12 @@ func (node *Node) Touch(key string, seconds int32, finishChan chan (*NodeRespons
 	}()
 }
 
+func (node *Node) IsHealthy() bool {
+	node.lock.RLock()
+	defer node.lock.RUnlock()
+	return node.isHealthy
+}
+
 // HealthCheck performs a healthcheck on the memcache server represented by this node, update IsHealthy, and return it
 func (node *Node) HealthCheck() (bool, error) {
 	// Read a Random key, expect ErrCacheMiss
@@ -125,16 +129,11 @@ func (node *Node) HealthCheck() (bool, error) {
 		return false, err
 	}
 	node.getNodeResponse(nil, err)
-	node.lock.RLock()
-	defer node.lock.RUnlock()
-	return node.IsHealthy, nil
+	return node.IsHealthy(), nil
 }
 
 func (node *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse {
 	var haitem *Item
-	node.lock.Lock()
-	node.LastHealthCheck = time.Now()
-	node.lock.Unlock()
 	if err != nil &&
 		err != memcache.ErrCacheMiss &&
 		err != memcache.ErrCASConflict &&
@@ -153,17 +152,17 @@ func (node *Node) getNodeResponse(item *memcache.Item, err error) *NodeResponse 
 
 func (node *Node) markHealthy() {
 	node.lock.Lock()
-	if !node.IsHealthy {
+	if !node.isHealthy {
 		node.Log.Info("Healthy")
 	}
-	node.IsHealthy = true
+	node.isHealthy = true
 	node.lock.Unlock()
 }
 func (node *Node) markUnhealthy(err error) {
 	node.lock.Lock()
-	if node.IsHealthy {
+	if node.isHealthy {
 		node.Log.Warn("Unhealthy (%s)", err)
 	}
-	node.IsHealthy = false
+	node.isHealthy = false
 	node.lock.Unlock()
 }

@@ -4,15 +4,15 @@ import "sync"
 
 // NodeList represents a list of memcache servers configured/discovered by this client.
 type NodeList struct {
-	lock  sync.RWMutex // on Nodes
-	Nodes map[string]*Node
+	lock  sync.RWMutex // on nodes
+	nodes map[string]*Node
 }
 
 // NewNodeList returns a new, empty NodeList
 func NewNodeList() *NodeList {
 	return &NodeList{
-		Nodes: map[string]*Node{},
 		lock:  sync.RWMutex{},
+		nodes: map[string]*Node{},
 	}
 }
 
@@ -20,12 +20,10 @@ func NewNodeList() *NodeList {
 func (nodeList *NodeList) GetHealthyNodes() map[string]*Node {
 	out := map[string]*Node{}
 	nodeList.lock.RLock()
-	for _, node := range nodeList.Nodes {
-		node.lock.RLock()
-		if node.IsHealthy {
+	for _, node := range nodeList.nodes {
+		if node.IsHealthy() {
 			out[node.Endpoint] = node
 		}
-		node.lock.RUnlock()
 	}
 	nodeList.lock.RUnlock()
 	return out
@@ -35,12 +33,10 @@ func (nodeList *NodeList) GetHealthyNodes() map[string]*Node {
 func (nodeList *NodeList) GetHealthyNodeCount() int {
 	healthy := 0
 	nodeList.lock.RLock()
-	for _, node := range nodeList.Nodes {
-		node.lock.RLock()
-		if node.IsHealthy {
+	for _, node := range nodeList.nodes {
+		if node.IsHealthy() {
 			healthy++
 		}
-		node.lock.RUnlock()
 	}
 	nodeList.lock.RUnlock()
 	return healthy
@@ -49,7 +45,7 @@ func (nodeList *NodeList) GetHealthyNodeCount() int {
 // Exists returns true if a node for the given endpoint exists
 func (nodeList *NodeList) Exists(nodeAddr string) bool {
 	nodeList.lock.RLock()
-	_, found := nodeList.Nodes[nodeAddr]
+	_, found := nodeList.nodes[nodeAddr]
 	nodeList.lock.RUnlock()
 	return found
 }
@@ -57,6 +53,30 @@ func (nodeList *NodeList) Exists(nodeAddr string) bool {
 // Add the given node to this list
 func (nodeList *NodeList) Add(node *Node) {
 	nodeList.lock.Lock()
-	nodeList.Nodes[node.Endpoint] = node
+	nodeList.nodes[node.Endpoint] = node
 	nodeList.lock.Unlock()
+}
+
+func (nodeList *NodeList) RemoveAddrs(nodeAddrs map[string]bool) []string {
+	removedAddrs := []string{}
+	nodeList.lock.RLock()
+	for nodeAddr := range nodeList.nodes {
+		if nodeAddrs[nodeAddr] {
+			delete(nodeList.nodes, nodeAddr)
+			removedAddrs = append(removedAddrs, nodeAddr)
+		}
+	}
+	nodeList.lock.RUnlock()
+	return removedAddrs
+}
+
+func (nodeList *NodeList) HealthCheck() error {
+	nodeList.lock.RLock()
+	defer nodeList.lock.RUnlock()
+	for _, node := range nodeList.nodes {
+		if _, err := node.HealthCheck(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
