@@ -2,9 +2,9 @@
 package memcacheha
 
 import (
-	"github.com/apitalent/logger"
-	"github.com/bradfitz/gomemcache/memcache"
 	"time"
+
+	"github.com/bradfitz/gomemcache/memcache"
 )
 
 // VERSION is the version of this memcacheha client
@@ -12,16 +12,16 @@ const VERSION = "0.1.0"
 
 var (
 	// GET_NODES_PERIOD is the period between checking all sources for new or deprecated nodes
-	GET_NODES_PERIOD time.Duration = time.Duration(10 * time.Second)
+	GET_NODES_PERIOD = 10 * time.Second
 	// HEALTHCHECK_PERIOD is the period between healthchecks on nodes
-	HEALTHCHECK_PERIOD time.Duration = time.Duration(5 * time.Second)
+	HEALTHCHECK_PERIOD = 5 * time.Second
 )
 
 // Client represents the cluster client.
 type Client struct {
 	Nodes   *NodeList
 	Sources []NodeSource
-	Log     logger.Logger
+	Log     Logger
 
 	Timeout time.Duration
 
@@ -30,7 +30,7 @@ type Client struct {
 }
 
 // New returns a new Client with the specified logger and NodeSources
-func New(logger logger.Logger, sources ...NodeSource) *Client {
+func New(logger Logger, sources ...NodeSource) *Client {
 	i := &Client{
 		Nodes:        NewNodeList(),
 		Sources:      sources,
